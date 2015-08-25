@@ -32,7 +32,6 @@ import org.eclipse.californium.core.network.RemoteEndpointManager;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.config.NetworkConfigDefaults;
 import org.eclipse.californium.core.network.stack.congestioncontrol.*;
-import org.hamcrest.core.IsInstanceOf;
 
 /**
  * The optional Congestion Control (CC) Layer for the Californium CoAP
