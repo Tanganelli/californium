@@ -28,16 +28,31 @@ public class MulticastServer extends CoapServer{
 
 	public static void main(String[] args) {
 		int port = 5683;
-		if (args.length > 0) {
+		String unicast = null;
+		MulticastServer server = null;
+		if (args.length == 1) {
 		    try {
 		        port = Integer.parseInt(args[0]);
 		    } catch (NumberFormatException e) {
 		        System.err.println("Argument" + args[0] + " must be an integer.");
 		        System.exit(1);
 		    }
+		    // create server
+		    server = new MulticastServer(port);
+		} else if(args.length == 2){
+			try {
+		        port = Integer.parseInt(args[0]);
+		    } catch (NumberFormatException e) {
+		        System.err.println("Argument" + args[0] + " must be an integer.");
+		        System.exit(1);
+		    }
+			unicast = args[1];
+			if(!unicast.equals("unicast"))
+				server = new MulticastServer(port);
+			else
+				server = new MulticastServer(port, true);
 		}
-		// create server
-		MulticastServer server = new MulticastServer(port);
+		
 		server.start();
     }
 	
@@ -63,6 +78,12 @@ public class MulticastServer extends CoapServer{
 		} catch (NullPointerException e) {
 			LOGGER.log(Level.WARNING, "Only IPv4");
 		}
+		add(new HelloWorldResource());
+	}
+	
+	public MulticastServer(int port, boolean unicats){
+		unicastEndpoint = new CoAPEndpoint(port);
+		this.addEndpoint(unicastEndpoint);
 		add(new HelloWorldResource());
 	}
 	

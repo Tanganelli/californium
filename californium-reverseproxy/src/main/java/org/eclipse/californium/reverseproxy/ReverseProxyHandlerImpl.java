@@ -12,7 +12,7 @@ public class ReverseProxyHandlerImpl implements ReverseProxyHandler{
 
 	@Override
 	public void onLoad(Response response) {
-		this.reverseProxy.receiveMulticastResponse(response);
+		this.reverseProxy.receiveDiscoveryResponse(response);
 		
 	}
 

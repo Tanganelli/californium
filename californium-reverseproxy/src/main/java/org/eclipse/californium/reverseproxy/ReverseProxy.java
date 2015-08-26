@@ -1,19 +1,30 @@
 package org.eclipse.californium.reverseproxy;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
@@ -24,6 +35,7 @@ import org.eclipse.californium.core.coap.LinkFormat;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.CoAPMulticastEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.server.resources.Resource;
@@ -50,11 +62,8 @@ public class ReverseProxy extends CoapServer {
 	private Map<InetSocketAddress, Set<WebLink>> mapping;
 	
 	public ReverseProxy(){
-		System.setProperty("java.net.preferIPv4Stack" , "true");
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
-		/*unicastEndpoint = new CoAPEndpoint(5684);
-		this.addEndpoint(unicastEndpoint);*/
 
 		InetSocketAddress ipv4;
 		try {
@@ -64,13 +73,12 @@ public class ReverseProxy extends CoapServer {
 			this.addEndpoint(this.multicastEndpointIPv4);
 			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+ipv4.getHostName(), this.multicastEndpointIPv4, this, this.handlerIPv4);
 		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
-		
-		/*try {
-			InetSocketAddress ipv6 = new InetSocketAddress(Inet6Address.getByName("FF0X::FD"), 5683);
+		InetSocketAddress ipv6;
+		try {
+			ipv6 = new InetSocketAddress(Inet6Address.getByName("FF0X::FD"), 5683);
 			this.addEndpoint(this.multicastEndpointIPv6);
 			handlerIPv6 = new ReverseProxyHandlerImpl(this);
 			this.multicastEndpointIPv6 = new CoAPMulticastEndpoint(ipv6);
@@ -79,10 +87,18 @@ public class ReverseProxy extends CoapServer {
 			LOGGER.log(Level.WARNING, "Only IPv4");
 		} catch (NullPointerException e) {
 			LOGGER.log(Level.WARNING, "Only IPv4");
-		}
-		*/
+		}		
 		mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
-		System.out.println(mapping);
+	}
+	
+	public ReverseProxy(String config){
+		Random rnd = new Random();
+		multicastMid = rnd.nextInt(65535);
+		handlerIPv4 = new ReverseProxyHandlerImpl(this);
+		unicastEndpoint = new CoAPEndpoint(5683);
+		this.addEndpoint(unicastEndpoint);
+		this.discoverThreadIPv4 = new Discover("UDP-Discover-"+unicastEndpoint.getAddress().getHostName(), this.unicastEndpoint, this, this.handlerIPv4, config);
+		mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
 	}
 	
 	@Override
@@ -113,7 +129,7 @@ public class ReverseProxy extends CoapServer {
 		return this.multicastMid;
 	}
 	
-	public synchronized void receiveMulticastResponse(Response response) {
+	public synchronized void receiveDiscoveryResponse(Response response) {
 		
 		if (response.getOptions().getContentFormat()!=MediaTypeRegistry.APPLICATION_LINK_FORMAT)
 			return;
@@ -145,17 +161,34 @@ public class ReverseProxy extends CoapServer {
 					System.err.println("Invalid URI: " + e.getMessage());
 
 				}
-				
 			}
 		}
-		/*for(Resource r :this.getRoot().getChildren())
-		{
-			System.out.println(r.getName() + " - " + r.getPath() + " - " + r.getURI());
-		}
-		System.out.println("");*/
 	}
 
-
+	private class Server{
+		private String name;
+		private String ip;
+		private String port;
+		
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+		public String getIp() {
+			return ip;
+		}
+		public void setIp(String ip) {
+			this.ip = ip;
+		}
+		public String getPort() {
+			return port;
+		}
+		public void setPort(String port) {
+			this.port = port;
+		}
+	}
 	private abstract class Worker extends Thread {
 
 		private Random rnd;
@@ -199,37 +232,92 @@ public class ReverseProxy extends CoapServer {
 		private Endpoint endpoint;
 		private ReverseProxy reverseProxy;
 		private ReverseProxyHandler handler;
+		private List<Server> serverList;
 		
 		private Discover(String name, Endpoint endpoint, ReverseProxy reverseProxy, ReverseProxyHandler handler) {
 			super(name);
 			this.endpoint = endpoint;
 			this.reverseProxy = reverseProxy;
 			this.handler = handler;
+			this.serverList = null;
 		}
 		
-		protected void work() throws InterruptedException, IOException {
-			Request request = new Request(Code.GET, Type.NON);
-			request.addMessageObserver(new ReverseProxyMessageObserver(handler));
-			//request.setDestination(this.endpoint.getAddress().getAddress());
-			//request.setDestinationPort(this.endpoint.getAddress().getPort());
-			request.setDestination(InetAddress.getByName("224.0.1.187"));
-			request.setDestinationPort(5684);
-			request.setURI("/.well-known/core");
-			request.setMID(this.reverseProxy.newMulticastMID());
-			request.setMulticast(true);
-			request.send(this.endpoint);
+		public Discover(String name, Endpoint endpoint, ReverseProxy reverseProxy, ReverseProxyHandler handler,	String serversConfig) {
+			super(name);
+			this.endpoint = endpoint;
+			this.reverseProxy = reverseProxy;
+			this.handler = handler;
+			XMLInputFactory factory = XMLInputFactory.newInstance();
+			Server currServer = null;
+			try {
+		    	FileReader file = new FileReader(serversConfig);
+				XMLStreamReader reader = factory.createXMLStreamReader(file);
+				String tagContent = null;
+				while(reader.hasNext()){
+					int event = reader.next();
+				    
+					switch(event){
+					    case XMLStreamConstants.START_ELEMENT: 
+					    	if ("server".equals(reader.getLocalName())){
+					    		currServer = new Server();
+					    	}
+					    	if("servers".equals(reader.getLocalName())){
+					            serverList = new ArrayList<Server>();
+					        }
+					        break;
+
+				        case XMLStreamConstants.CHARACTERS:
+				        	tagContent = reader.getText().trim();
+				        	break;
+				        	
+				        case XMLStreamConstants.END_ELEMENT:
+				        	if(reader.getLocalName().equals("server"))
+				        		serverList.add(currServer);
+				        	if(reader.getLocalName().equals("name"))
+				        		currServer.setName(tagContent);
+				        	if(reader.getLocalName().equals("ip"))
+				        		currServer.setIp(tagContent);
+				            if(reader.getLocalName().equals("port"))
+				            	currServer.setPort(tagContent);
+				            break;
+
+				        case XMLStreamConstants.START_DOCUMENT:
+				          serverList = new ArrayList<Server>();
+				          break;
+				      
+				    }
+				}
+			} catch (XMLStreamException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
-			Request request2 = new Request(Code.GET, Type.NON);
-			request2.addMessageObserver(new ReverseProxyMessageObserver(handler));
-			//request.setDestination(this.endpoint.getAddress().getAddress());
-			//request.setDestinationPort(this.endpoint.getAddress().getPort());
-			request2.setDestination(InetAddress.getByName("224.0.1.187"));
-			request2.setDestinationPort(5685);
-			request2.setURI("/.well-known/core");
-			request2.setMID(this.reverseProxy.newMulticastMID());
-			request2.setMulticast(true);
-			request2.send(this.endpoint);
-			//request.send();
+		}
+
+		protected void work() throws InterruptedException, IOException {
+			if(serverList == null){
+				Request request = new Request(Code.GET, Type.NON);
+				request.addMessageObserver(new ReverseProxyMessageObserver(handler));
+				request.setDestination(this.endpoint.getAddress().getAddress());
+				request.setDestinationPort(this.endpoint.getAddress().getPort());
+				request.setURI("/.well-known/core");
+				request.setMID(this.reverseProxy.newMulticastMID());
+				request.setMulticast(true);
+				request.send(this.endpoint);
+			} else {
+				for(Server server : serverList){
+					Request request = new Request(Code.GET, Type.CON);
+					request.addMessageObserver(new ReverseProxyMessageObserver(handler));
+					request.setDestination(InetAddress.getByName(server.getIp()));
+					request.setDestinationPort(Integer.parseInt(server.getPort()));
+					request.setURI("/.well-known/core");
+					request.send(this.endpoint);
+				}
+			}
+
 		}
 	}
 }
