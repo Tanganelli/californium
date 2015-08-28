@@ -3,7 +3,7 @@ package org.eclipse.californium.reverseproxy;
 import org.eclipse.californium.core.coap.MessageObserverAdapter;
 import org.eclipse.californium.core.coap.Response;
 
-public class ReverseProxyMessageObserver extends MessageObserverAdapter{
+public class ReverseProxyDiscoveryMessageObserver extends MessageObserverAdapter{
 	/** The handler. */
 	protected ReverseProxyHandler handler;
 	
@@ -12,7 +12,7 @@ public class ReverseProxyMessageObserver extends MessageObserverAdapter{
 	 *
 	 * @param handler the Response handler
 	 */
-	public ReverseProxyMessageObserver(ReverseProxyHandler handler) {
+	public ReverseProxyDiscoveryMessageObserver(ReverseProxyHandler handler) {
 		this.handler = handler;
 	}
 	

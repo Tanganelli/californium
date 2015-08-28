@@ -316,7 +316,7 @@ public class ReverseProxy extends CoapServer {
 		protected void work() throws InterruptedException, IOException {
 			if(serverList == null){
 				Request request = new Request(Code.GET, Type.NON);
-				request.addMessageObserver(new ReverseProxyMessageObserver(handler));
+				request.addMessageObserver(new ReverseProxyDiscoveryMessageObserver(handler));
 				request.setDestination(this.endpoint.getAddress().getAddress());
 				request.setDestinationPort(this.endpoint.getAddress().getPort());
 				request.setURI("/.well-known/core");
@@ -326,7 +326,7 @@ public class ReverseProxy extends CoapServer {
 			} else {
 				for(Server server : serverList){
 					Request request = new Request(Code.GET, Type.CON);
-					request.addMessageObserver(new ReverseProxyMessageObserver(handler));
+					request.addMessageObserver(new ReverseProxyDiscoveryMessageObserver(handler));
 					request.setDestination(InetAddress.getByName(server.getIp()));
 					request.setDestinationPort(Integer.parseInt(server.getPort()));
 					request.getOptions().setUriPath("/.well-known/core");
