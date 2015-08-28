@@ -10,12 +10,16 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,6 +42,7 @@ import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.CoAPMulticastEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.server.resources.Resource;
 import org.eclipse.californium.reverseproxy.resources.ReverseProxyResource;
 
@@ -47,7 +52,7 @@ public class ReverseProxy extends CoapServer {
 	private final static Logger LOGGER = Logger.getLogger(CoapServer.class.getCanonicalName());
 	
 	private static final int MULTICAST_SLEEP = 10000; //from 10 sec to 20 sec
-	
+
 	public Endpoint multicastEndpointIPv4;
 	private Endpoint multicastEndpointIPv6;
 	private Endpoint unicastEndpoint;
@@ -95,11 +100,23 @@ public class ReverseProxy extends CoapServer {
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
 		handlerIPv4 = new ReverseProxyHandlerImpl(this);
-		unicastEndpoint = new CoAPEndpoint(5683);
-		this.addEndpoint(unicastEndpoint);
-		this.discoverThreadIPv4 = new Discover("UDP-Discover-"+unicastEndpoint.getAddress().getHostName(), this.unicastEndpoint, this, this.handlerIPv4, config);
-		mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
+		try {
+			InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 5683);
+			unicastEndpoint = new CoAPEndpoint(address);
+			this.addEndpoint(unicastEndpoint);
+			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+unicastEndpoint.getAddress().getHostName(), this.unicastEndpoint, this, this.handlerIPv4, config);
+			mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
 	}
+    
+    public synchronized boolean scheduleNewRequest(QoSParameters params, ReverseProxyResource reverseProxyResource, RemoteEndpoint remoteEndpoint) {
+    	return true;
+    }
 	
 	@Override
 	public void start(){
@@ -145,17 +162,15 @@ public class ReverseProxy extends CoapServer {
 				to_add.add(n);
 			}
 		}
-		
 		InetSocketAddress source = new InetSocketAddress(response.getSource(), response.getSourcePort());
 		mapping.put(source, to_add);
 		for(Entry<InetSocketAddress, Set<WebLink>> sa : mapping.entrySet()){
-			
 			for(WebLink l : sa.getValue()){
 				try {
 					URI uri = new URI("coap://"+sa.getKey().toString().substring(1)+l.getURI());
 					Resource res = new CoapResource(sa.getKey().toString().substring(1));
 					this.add(res);
-					Resource res2 = new ReverseProxyResource(l.getURI().substring(1), uri, l.getAttributes());
+					Resource res2 = new ReverseProxyResource(l.getURI().substring(1), uri, l.getAttributes(), this.unicastEndpoint.getConfig());
 					res.add(res2);
 				} catch (URISyntaxException e) {
 					System.err.println("Invalid URI: " + e.getMessage());
@@ -211,7 +226,8 @@ public class ReverseProxy extends CoapServer {
 			while (running) {
 				try {
 					work();
-					Thread.sleep(MULTICAST_SLEEP + rnd.nextInt(MULTICAST_SLEEP));
+					//Thread.sleep(MULTICAST_SLEEP + rnd.nextInt(MULTICAST_SLEEP));
+					break;
 				} catch (Throwable t) {
 					if (running)
 						LOGGER.log(Level.WARNING, "Exception occurred in Worker [" + getName() + "] (running="
@@ -313,8 +329,8 @@ public class ReverseProxy extends CoapServer {
 					request.addMessageObserver(new ReverseProxyMessageObserver(handler));
 					request.setDestination(InetAddress.getByName(server.getIp()));
 					request.setDestinationPort(Integer.parseInt(server.getPort()));
-					request.setURI("/.well-known/core");
-					request.send(this.endpoint);
+					request.getOptions().setUriPath("/.well-known/core");
+					request.send();
 				}
 			}
 

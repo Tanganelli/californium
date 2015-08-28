@@ -95,7 +95,10 @@ public class CoapStack {
 		this.outbox = outbox;
 		
 		ReliabilityLayer reliabilityLayer;
-		if (config.getBoolean(NetworkConfigDefaults.USE_CONGESTION_CONTROL) == true) {
+		if(config.getBoolean(NetworkConfigDefaults.USE_QOS) == true){
+			reliabilityLayer = QoSLayer.newImplementation(config);
+		}
+		else if (config.getBoolean(NetworkConfigDefaults.USE_CONGESTION_CONTROL) == true) {
 			reliabilityLayer = CongestionControlLayer.newImplementation(config);
 			LOGGER.config("Enabling congestion control: " + reliabilityLayer.getClass().getSimpleName());
 		} else {
@@ -118,7 +121,7 @@ public class CoapStack {
 	public void sendRequest(Request request) {
 		top.sendRequest(request);
 	}
-
+	
 	// delegate to top
 	public void sendResponse(Exchange exchange, Response response) {
 		top.sendResponse(exchange, response);

@@ -65,6 +65,7 @@ public class NetworkConfigDefaults {
 	public static final String CONGESTION_CONTROL_ALGORITHM = "CONGESTION_CONTROL_ALGORITHM";
 	
 	public static final String USE_CONGESTION_CONTROL = "USE_CONGESTION_CONTROL";
+	public static final String USE_QOS = "USE_QOS";
 	public static final String USE_RANDOM_TOKEN_START = "USE_RANDOM_TOKEN_START";
 	public static final String USE_RANDOM_MID_START = "USE_RANDOM_MID_START";
 	
@@ -98,6 +99,7 @@ public class NetworkConfigDefaults {
 		config.setLong(EXCHANGE_LIFECYCLE, 247 * 1000); // in ms
 		config.setString(CONGESTION_CONTROL_ALGORITHM, "Cocoa"); // see org.eclipse.californium.core.network.stack.congestioncontrol
 		config.setBoolean(USE_CONGESTION_CONTROL, false);
+		config.setBoolean(USE_QOS, false);
 		config.setBoolean(USE_RANDOM_TOKEN_START, true);
 		config.setBoolean(USE_RANDOM_MID_START, true);
 		

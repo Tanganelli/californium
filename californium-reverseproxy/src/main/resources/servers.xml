@@ -1,12 +1,12 @@
 <servers>
   <server>
     <name>Unipi01</name>
-    <ip>127.0.0.1</ip>
-    <port>5684</port>
+    <ip>127.0.0.2</ip>
+    <port>5683</port>
   </server>
   <server>
     <name>Unipi02</name>
-    <ip>127.0.0.1</ip>
-    <port>5685</port>
+    <ip>127.0.0.3</ip>
+    <port>5683</port>
   </server>
 </servers>

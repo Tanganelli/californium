@@ -1,14 +1,29 @@
 package org.eclipse.californium.multicast.server;
 
+import static org.eclipse.californium.core.coap.CoAP.ResponseCode.CHANGED;
+import static org.eclipse.californium.core.coap.MediaTypeRegistry.TEXT_PLAIN;
+
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
+import org.eclipse.californium.core.coap.CoAP;
+import org.eclipse.californium.core.coap.Request;
+import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.coap.CoAP.ResponseCode;
+import org.eclipse.californium.core.coap.CoAP.Type;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.CoAPMulticastEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
@@ -47,10 +62,7 @@ public class MulticastServer extends CoapServer{
 		        System.exit(1);
 		    }
 			unicast = args[1];
-			if(!unicast.equals("unicast"))
-				server = new MulticastServer(port);
-			else
-				server = new MulticastServer(port, true);
+			server = new MulticastServer(port, unicast);
 		}
 		
 		server.start();
@@ -78,35 +90,103 @@ public class MulticastServer extends CoapServer{
 		} catch (NullPointerException e) {
 			LOGGER.log(Level.WARNING, "Only IPv4");
 		}
-		add(new HelloWorldResource());
+		add(new CoREInterfaceResource());
 	}
 	
-	public MulticastServer(int port, boolean unicats){
-		unicastEndpoint = new CoAPEndpoint(port);
-		this.addEndpoint(unicastEndpoint);
-		add(new HelloWorldResource());
+	public MulticastServer(int port, String unicast){
+		try {
+			InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName(unicast), port);
+			unicastEndpoint = new CoAPEndpoint(address);
+			this.addEndpoint(unicastEndpoint);
+			add(new CoREInterfaceResource());
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	
 	/*
      * Definition of the Hello-World Resource
      */
-    class HelloWorldResource extends CoapResource {
+    class CoREInterfaceResource extends CoapResource {
         
-        public HelloWorldResource() {
+    	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    	// The current time represented as string
+    	private String time;
+    	private int dataCf = TEXT_PLAIN;
+    	private int notificationPeriod = 5; // 5 seconds as default
+        public CoREInterfaceResource() {
             
             // set resource identifier
-            super("helloWorld");
-            
+            super("CoREInterfaceResource");
+            setObservable(true);
             // set display name
-            getAttributes().setTitle("Hello-World Resource");
+            getAttributes().setTitle("CoRE Interface Resource");
+            getAttributes().addResourceType("observe");
+    		getAttributes().setObservable();
+    		setObserveType(Type.CON);
+    		
+    		DynamicTimeTask task = new DynamicTimeTask();
+    		scheduler.submit(task);
+    		
         }
+        private class DynamicTimeTask implements Runnable {
+
+    		@Override
+    		public void run() {
+    			while(true){
+	    			time = getTime();
+	    			dataCf = TEXT_PLAIN;
+	
+	    			// Call changed to notify subscribers
+	    			changed();
+	    			try {
+						Thread.sleep(notificationPeriod * 1000); // convert to milliseconds
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+    			}
+    		}
+    	}
+        
+        private String getTime() {
+    		DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    		Date time = new Date();
+    		return dateFormat.format(time);
+    	}
         
         @Override
         public void handleGET(CoapExchange exchange) {
-            
+        	exchange.setMaxAge(notificationPeriod);
             // respond to the request
-            exchange.respond("Hello World!");
+            exchange.respond("CoRE Interface Resource Value");
+        }
+        
+        @Override
+        public void handlePUT(CoapExchange exchange){
+        	Request request = exchange.advanced().getRequest();
+        	List<String> queries = request.getOptions().getUriQuery();
+        	if(!queries.isEmpty()){
+        		for(String query : queries){
+					if(query.equals(CoAP.MINIMUM_PERIOD)){
+						int seconds = -1;
+						try{
+							seconds = Integer.parseInt(request.getPayloadString()); 
+							if(seconds <= 0) throw new NumberFormatException();
+							notificationPeriod = seconds;
+						} catch(NumberFormatException e){
+							Response response = new Response(ResponseCode.BAD_REQUEST);
+							response.setDestination(request.getSource());
+							response.setDestinationPort(request.getDestinationPort());
+							exchange.advanced().sendResponse(response);
+							return;
+						}
+					}
+				}
+        	}
+        	exchange.respond(CHANGED);
         }
     }
 }

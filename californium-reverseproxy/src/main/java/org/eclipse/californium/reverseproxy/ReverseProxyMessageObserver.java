@@ -26,7 +26,9 @@ public class ReverseProxyMessageObserver extends MessageObserverAdapter{
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.coap.MessageObserverAdapter#rejected()
 	 */
-	@Override public void onReject()  { failed(); }
+	@Override public void onReject()  { 
+		failed(); 
+	}
 	
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.coap.MessageObserverAdapter#timedOut()

@@ -43,6 +43,11 @@ public class CoAP {
 	public static final String COAP_URI_SCHEME = "coap";
 	public static final String COAP_SECURE_URI_SCHEME = "coaps";
 	
+	/* QOS */
+	//TODO find a better place
+	public static final String MINIMUM_PERIOD = "pmin";
+	public static final String MAXIMUM_PERIOD = "pmax";
+	
 	private CoAP() {
 		// prevent initialization
 	}

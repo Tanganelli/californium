@@ -122,7 +122,7 @@ public interface Endpoint {
 	 * @param request the request
 	 */
 	public void sendRequest(Request request);
-
+	
 	/**
 	 * Send the specified response.
 	 *
