@@ -96,6 +96,7 @@ public class CoapStack {
 		
 		ReliabilityLayer reliabilityLayer;
 		if(config.getBoolean(NetworkConfigDefaults.USE_QOS) == true){
+			// FIXME it doesn't work. It always return a ConcestionControl Layer
 			reliabilityLayer = QoSLayer.newImplementation(config);
 		}
 		else if (config.getBoolean(NetworkConfigDefaults.USE_CONGESTION_CONTROL) == true) {

@@ -370,6 +370,7 @@ public abstract class CongestionControlLayer extends ReliabilityLayer {
 		if (exchange.getFailedTransmissionCount() != 0) {
 			getRemoteEndpoint(exchange).setEstimatorState(exchange);
 		}
+		response.setRemoteEndpoint(getRemoteEndpoint(exchange));
 		super.receiveResponse(exchange, response);
 
 		calculateRTT(exchange);

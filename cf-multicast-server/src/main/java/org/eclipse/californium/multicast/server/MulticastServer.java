@@ -116,6 +116,7 @@ public class MulticastServer extends CoapServer{
     	private String time;
     	private int dataCf = TEXT_PLAIN;
     	private int notificationPeriod = 5; // 5 seconds as default
+    	private int maxAge = 5; // 5 seconds as default
         public CoREInterfaceResource() {
             
             // set resource identifier
@@ -159,7 +160,7 @@ public class MulticastServer extends CoapServer{
         
         @Override
         public void handleGET(CoapExchange exchange) {
-        	exchange.setMaxAge(notificationPeriod);
+        	exchange.setMaxAge(maxAge);
             // respond to the request
             exchange.respond("CoRE Interface Resource Value");
         }
@@ -169,13 +170,35 @@ public class MulticastServer extends CoapServer{
         	Request request = exchange.advanced().getRequest();
         	List<String> queries = request.getOptions().getUriQuery();
         	if(!queries.isEmpty()){
-        		for(String query : queries){
+    			int min_period = 0;
+    			int max_period = 0;
+        		for(String composedquery : queries){
+        			//handle queries values
+        			String[] tmp = composedquery.split("=");
+        			if(tmp.length != 2) // not valid Pmin or Pmax
+        				return;
+        			String query = tmp[0];
+        			String value = tmp[1];
+					if(query.equals(CoAP.MAXIMUM_PERIOD)){
+						int seconds = -1;
+						try{
+							seconds = Integer.parseInt(value); 
+							if(seconds <= 0) throw new NumberFormatException();
+							max_period = seconds;
+						} catch(NumberFormatException e){
+							Response response = new Response(ResponseCode.BAD_REQUEST);
+							response.setDestination(request.getSource());
+							response.setDestinationPort(request.getDestinationPort());
+							exchange.advanced().sendResponse(response);
+							return;
+						}
+					}
 					if(query.equals(CoAP.MINIMUM_PERIOD)){
 						int seconds = -1;
 						try{
-							seconds = Integer.parseInt(request.getPayloadString()); 
+							seconds = Integer.parseInt(value); 
 							if(seconds <= 0) throw new NumberFormatException();
-							notificationPeriod = seconds;
+							min_period = seconds;
 						} catch(NumberFormatException e){
 							Response response = new Response(ResponseCode.BAD_REQUEST);
 							response.setDestination(request.getSource());
@@ -185,6 +208,11 @@ public class MulticastServer extends CoapServer{
 						}
 					}
 				}
+        		notificationPeriod = (max_period + min_period) / 2 ;
+        		maxAge = max_period;
+        		System.out.println("Notification Period = " + this.notificationPeriod);
+        		System.out.println("Max Period = " + max_period);
+        		System.out.println("Min Period = " + min_period);
         	}
         	exchange.respond(CHANGED);
         }
