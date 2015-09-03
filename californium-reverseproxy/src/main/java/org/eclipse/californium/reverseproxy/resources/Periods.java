@@ -1,5 +1,9 @@
 package org.eclipse.californium.reverseproxy.resources;
 
+/**
+ * A class for providing to the Resource the periods to be used for the
+ * observing registration on the end device.
+ */
 public class Periods {
 	private int Pmin;
 	private int Pmax;

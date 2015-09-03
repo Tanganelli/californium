@@ -9,6 +9,9 @@ import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
 
+/**
+ * Response Handler for notifications coming from the end device.
+ */
 public class ReverseProxyCoAPHandler implements CoapHandler{
 
 	private ReverseProxyResource ownerResource;
@@ -23,12 +26,10 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 			List<PeriodicRequest> tmp = ownerResource.getSubscriberList();
 			for(PeriodicRequest pr : tmp){
 				if(pr.isAllowed()){
-					//FIXME Timestamp is always 0 why?
-					long timestamp = response.getTimestamp();
-					timestamp = System.nanoTime() / 1000; // convert to milliseconds
+					pr.setLastNotificationSent(response);
 					Date now = new Date();
-					timestamp = now.getTime();
-					pr.setLastNotificationSent(timestamp);
+					long timestamp = now.getTime();
+					pr.setTimestampLastNotificationSent(timestamp);
 					Response responseForClients = new Response(response.getCode());
 					// copy payload
 					byte[] payload = response.getPayload();
@@ -52,6 +53,10 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 				}
 			}
 		}
+		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());
+		Date now = new Date();
+		long timestamp = now.getTime();
+		response.setTimestamp(timestamp);
 		ownerResource.setLastNotificationMessage(response);
 	}
 

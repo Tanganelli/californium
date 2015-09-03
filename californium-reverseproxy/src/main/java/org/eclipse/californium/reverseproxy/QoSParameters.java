@@ -1,5 +1,8 @@
 package org.eclipse.californium.reverseproxy;
 
+/**
+ * Parameters requested by a client.
+ */
 public class QoSParameters{
 	private int pmin;
 	private int pmax;
@@ -14,7 +17,7 @@ public class QoSParameters{
 	public QoSParameters(int pmin, int pmax, boolean allowed) {
 		this.pmin = pmin;
 		this.pmax = pmax;
-		this.setAllowed(false);
+		this.setAllowed(allowed);
 	}
 	public int getPmin() {
 		return pmin;

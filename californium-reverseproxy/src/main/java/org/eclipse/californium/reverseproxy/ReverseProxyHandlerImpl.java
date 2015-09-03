@@ -2,6 +2,9 @@ package org.eclipse.californium.reverseproxy;
 
 import org.eclipse.californium.core.coap.Response;
 
+/**
+ * Reacts to discovery replies.
+ */
 public class ReverseProxyHandlerImpl implements ReverseProxyHandler{
 
 	private ReverseProxy reverseProxy;

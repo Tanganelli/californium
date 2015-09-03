@@ -1,6 +1,5 @@
 package org.eclipse.californium.reverseproxy.resources;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.californium.core.network.Exchange;
@@ -9,6 +8,9 @@ import org.eclipse.californium.core.server.resources.Resource;
 import org.eclipse.californium.core.server.resources.ResourceObserver;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
 
+/**
+ * Used to react to changes performed by the client on the resource.
+ */
 public class ReverseProxyResourceObserver implements ResourceObserver{
 
 	private ReverseProxyResource ownerResource;
@@ -50,14 +52,14 @@ public class ReverseProxyResourceObserver implements ResourceObserver{
 	@Override
 	public void removedObserveRelation(ObserveRelation relation) {
 		List<PeriodicRequest> tmp = ownerResource.getSubscriberList();
-		List<PeriodicRequest> to_delete = new ArrayList<PeriodicRequest>();
+		PeriodicRequest to_delete = null;
 		Exchange exchange = relation.getExchange();
 		for(PeriodicRequest pr : tmp){
 			if(pr.getExchange().advanced().equals(exchange)){
-				to_delete.add(pr);
+				to_delete = pr;
 			}
 		}
-		ownerResource.deleteSubscriptions(to_delete);
+		ownerResource.deleteSubscriptionsFromClients(to_delete);
 	}
 
 }

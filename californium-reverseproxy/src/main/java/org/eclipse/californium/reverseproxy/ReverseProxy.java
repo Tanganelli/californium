@@ -114,10 +114,6 @@ public class ReverseProxy extends CoapServer {
 		
 	}
     
-    public synchronized boolean scheduleNewRequest(QoSParameters params, ReverseProxyResource reverseProxyResource, RemoteEndpoint remoteEndpoint) {
-    	return true;
-    }
-	
 	@Override
 	public void start(){
 		LOGGER.info("Starting ReverseProxy");
@@ -146,6 +142,11 @@ public class ReverseProxy extends CoapServer {
 		return this.multicastMid;
 	}
 	
+	/**
+	 * Parse the discovery response and fill the resource tree of the proxy.
+	 * 
+	 * @param response the discovery response
+	 */
 	public synchronized void receiveDiscoveryResponse(Response response) {
 		
 		if (response.getOptions().getContentFormat()!=MediaTypeRegistry.APPLICATION_LINK_FORMAT)
@@ -226,6 +227,7 @@ public class ReverseProxy extends CoapServer {
 			while (running) {
 				try {
 					work();
+					//TODO decide what to do 
 					//Thread.sleep(MULTICAST_SLEEP + rnd.nextInt(MULTICAST_SLEEP));
 					break;
 				} catch (Throwable t) {
@@ -244,6 +246,9 @@ public class ReverseProxy extends CoapServer {
 		protected abstract void work() throws Exception;
 	}
 	
+	/**
+	 * The discover Thread that issues periodic discovery queries to end devices.
+	 */
 	private class Discover extends Worker {
 		private Endpoint endpoint;
 		private ReverseProxy reverseProxy;
