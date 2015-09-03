@@ -15,6 +15,7 @@ public class PeriodicRequest extends QoSParameters{
 	private CoapExchange exchange;
 	private ResponseCode responseCode;
 	private Response lastNotificationSent;
+	private byte[] token;
 	
 	public PeriodicRequest(ResponseCode code) {
 		responseCode = code;
@@ -59,6 +60,12 @@ public class PeriodicRequest extends QoSParameters{
 	}
 	public void setLastNotificationSent(Response lastNotificationSent) {
 		this.lastNotificationSent = lastNotificationSent;
+	}
+	public byte[] getToken() {
+		return token;
+	}
+	public void setToken(byte[] token) {
+		this.token = token;
 	}
 
 }

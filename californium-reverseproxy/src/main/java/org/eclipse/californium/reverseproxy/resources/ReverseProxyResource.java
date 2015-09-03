@@ -128,28 +128,15 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = pr.getResponseCode();
 			// create Observe request for the first client
 			if(res == null){
-				relation = client.observe(new ReverseProxyCoAPHandler(this));
-				notificationExecutor.submit(notificationTask);
+				if(relation == null){
+					relation = client.observe(new ReverseProxyCoAPHandler(this));
+					notificationExecutor.submit(notificationTask);
+				} else {
+					Response responseForClients = sendLast(request, pr);
+					exchange.respond(responseForClients);
+				}
 			}else if(res == ResponseCode.CONTENT){
-				pr.setLastNotificationSent(this.lastNotificationMessage);
-				Date now = new Date();
-				long timestamp = now.getTime();
-				pr.setTimestampLastNotificationSent(timestamp);
-				// accept without create a new observing relationship
-				Response responseForClients = new Response(this.lastNotificationMessage.getCode());
-				// copy payload
-				byte[] payload = this.lastNotificationMessage.getPayload();
-				responseForClients.setPayload(payload);
-	
-				// copy every option
-				responseForClients.setOptions(new OptionSet(
-						this.lastNotificationMessage.getOptions()));
-				responseForClients.setDestination(request.getSource());
-				responseForClients.setDestinationPort(request.getSourcePort());
-				responseForClients.setToken(request.getToken());
-				RemoteEndpoint remoteEndpoint = getActualRemote(request.getSource(), request.getSourcePort());
-				QoSParameters params = qosParameters.get(remoteEndpoint);
-				responseForClients.getOptions().setMaxAge(params.getPmax() / 1000);
+				Response responseForClients = sendLast(request, pr);
 				exchange.respond(responseForClients);
 			}
 			else{
@@ -161,6 +148,31 @@ public class ReverseProxyResource extends CoapResource {
 		}
 	}
 	
+	private Response sendLast(Request request, PeriodicRequest pr) {
+		pr.setLastNotificationSent(this.lastNotificationMessage);
+		Date now = new Date();
+		long timestamp = now.getTime();
+		pr.setTimestampLastNotificationSent(timestamp);
+		// accept without create a new observing relationship
+		Response responseForClients = new Response(this.lastNotificationMessage.getCode());
+		// copy payload
+		byte[] payload = this.lastNotificationMessage.getPayload();
+		responseForClients.setPayload(payload);
+
+		// copy every option
+		responseForClients.setOptions(new OptionSet(
+				this.lastNotificationMessage.getOptions()));
+		responseForClients.setDestination(request.getSource());
+		responseForClients.setDestinationPort(request.getSourcePort());
+		responseForClients.setToken(request.getToken());
+		responseForClients.getOptions().setObserve(this.lastNotificationMessage.getOptions().getObserve());
+		RemoteEndpoint remoteEndpoint = getActualRemote(request.getSource(), request.getSourcePort());
+		QoSParameters params = qosParameters.get(remoteEndpoint);
+		responseForClients.getOptions().setMaxAge(params.getPmax() / 1000);
+		return responseForClients;
+	}
+
+
 	/**
 	 * Handles the POST request in the given CoAPExchange. Forward request to end device.
 	 *
@@ -303,11 +315,12 @@ public class ReverseProxyResource extends CoapResource {
 				pr.setClientEndpoint(remoteEndpoint);
 				pr.setCommittedPeriod(this.notificationPeriodMax);
 				pr.setExchange(exchange);
+				pr.setToken(request.getToken());
 				this.subscriberList.add(pr);
 				return pr;
 			}
 			// Try scheduling
-			else if(scheduleNewRequest(params, remoteEndpoint)){
+			else if(scheduleNewRequest(params)){
 				params.setAllowed(true);
 				qosParameters.put(remoteEndpoint, params);
 				ResponseCode res = setObservingQoS();
@@ -320,6 +333,7 @@ public class ReverseProxyResource extends CoapResource {
 					pr.setClientEndpoint(remoteEndpoint);
 					pr.setCommittedPeriod(this.notificationPeriodMax);
 					pr.setExchange(exchange);
+					pr.setToken(request.getToken());
 					this.subscriberList.add(pr);
 					return pr;
 				}
@@ -501,7 +515,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param remoteEndpoint 
 	 * @param reverseProxyResource 
 	 */
-	private boolean scheduleNewRequest(QoSParameters params, RemoteEndpoint remoteEndpoint) {
+	private boolean scheduleNewRequest(QoSParameters params) {
 		if(this.rtt == -1) evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
 		
@@ -659,6 +673,8 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private class NotificationTask implements Runnable{
 
+		private static final long EXTIMATED_RTT = 1000;
+
 		@Override
 		public void run() {
 			while(relation != null){
@@ -671,7 +687,7 @@ public class ReverseProxyResource extends CoapResource {
 							Date now = new Date();
 							long timestamp = now.getTime();
 							long nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
-							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax());
+							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - EXTIMATED_RTT);
 							//System.out.println("timestamp " + timestamp);
 							//System.out.println("next Interval " + nextInterval);
 							//System.out.println("deadline " + deadline);
@@ -738,9 +754,8 @@ public class ReverseProxyResource extends CoapResource {
 				responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);
 				responseForClients.setDestination(pr.getClientEndpoint().getRemoteAddress());
 				responseForClients.setDestinationPort(pr.getClientEndpoint().getRemotePort());
-				
-				Request origin = pr.getExchange().advanced().getRequest();
-				responseForClients.setToken(origin.getToken());
+				responseForClients.setToken(pr.getToken());
+				responseForClients.getOptions().setObserve(getLastNotificationMessage().getOptions().getObserve());
 				pr.getExchange().respond(responseForClients);
 			}
 			

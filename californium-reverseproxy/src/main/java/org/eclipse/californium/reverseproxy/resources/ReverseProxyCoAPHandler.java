@@ -22,6 +22,7 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 	@Override
 	public void onLoad(CoapResponse coapResponse) {
 		Response response = coapResponse.advanced();
+		ownerResource.getNotificationOrderer().getNextObserveNumber();
 		if(ownerResource.getLastNotificationMessage() == null){
 			List<PeriodicRequest> tmp = ownerResource.getSubscriberList();
 			for(PeriodicRequest pr : tmp){
@@ -40,19 +41,17 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 					responseForClients.setTimestamp(timestamp);
 		
 					// copy every option
-					responseForClients.setOptions(new OptionSet(
-							response.getOptions()));
-					responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);
+					responseForClients.setOptions(new OptionSet(response.getOptions()));
+					responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);		
 					responseForClients.setDestination(pr.getClientEndpoint().getRemoteAddress());
 					responseForClients.setDestinationPort(pr.getClientEndpoint().getRemotePort());
-					
-					Request origin = pr.getExchange().advanced().getRequest();
-					responseForClients.setToken(origin.getToken());
+					responseForClients.setToken(pr.getToken());
 					pr.getExchange().respond(responseForClients);
 					
 				}
 			}
 		}
+		
 		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());
 		Date now = new Date();
 		long timestamp = now.getTime();

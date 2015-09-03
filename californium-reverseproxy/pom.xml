@@ -21,6 +21,7 @@
 				<version>2.2</version>
 				<!-- nothing here -->
 			</plugin>
+			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>

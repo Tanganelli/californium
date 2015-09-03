@@ -82,7 +82,8 @@
 		<module>cf-benchmark</module>
 		<module>californium-reverseproxy</module>
     <module>cf-multicast-server</module>
-  </modules>
+    <module>cf-coreinterface-client</module>
+	</modules>
 	
 	<distributionManagement>
 		<repository>

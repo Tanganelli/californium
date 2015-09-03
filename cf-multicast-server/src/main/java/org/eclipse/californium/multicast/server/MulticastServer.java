@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -117,6 +121,7 @@ public class MulticastServer extends CoapServer{
     	private int dataCf = TEXT_PLAIN;
     	private int notificationPeriod = 5; // 5 seconds as default
     	private int maxAge = 5; // 5 seconds as default
+    	private DynamicTimeTask task;
         public CoREInterfaceResource() {
             
             // set resource identifier
@@ -127,27 +132,31 @@ public class MulticastServer extends CoapServer{
             getAttributes().addResourceType("observe");
     		getAttributes().setObservable();
     		setObserveType(Type.CON);
-    		
-    		DynamicTimeTask task = new DynamicTimeTask();
-    		scheduler.submit(task);
+    		task = null;
     		
         }
-        private class DynamicTimeTask implements Runnable {
+        private class DynamicTimeTask extends Thread {
 
-    		@Override
+        	private boolean exit;
+
+        	public DynamicTimeTask(){
+        		exit = false;
+        	}
+    		
+			@Override
     		public void run() {
-    			while(true){
+    			while(!exit){
 	    			time = getTime();
 	    			dataCf = TEXT_PLAIN;
 	
 	    			// Call changed to notify subscribers
 	    			changed();
+	    			LOGGER.info("Send Notification");
 	    			try {
-						Thread.sleep(notificationPeriod * 1000); // convert to milliseconds
+	    				Thread.sleep(notificationPeriod * 1000);
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+						LOGGER.info("Stop Thread");
+					} 
     			}
     		}
     	}
@@ -213,6 +222,19 @@ public class MulticastServer extends CoapServer{
         		System.out.println("Notification Period = " + this.notificationPeriod);
         		System.out.println("Max Period = " + max_period);
         		System.out.println("Min Period = " + min_period);
+
+        		if(task != null){
+        			task.exit = true;
+	        		task.interrupt();
+	        		try {
+						task.join();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+        		}
+        		task = new DynamicTimeTask();
+        		task.start();
         	}
         	exchange.respond(CHANGED);
         }

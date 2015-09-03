@@ -184,7 +184,7 @@ public  class CoapResource implements Resource {
 		this.children = new ConcurrentHashMap<String, Resource>();
 		this.observers = new CopyOnWriteArrayList<ResourceObserver>();
 		this.observeRelations = new ObserveRelationContainer();
-		this.notificationOrderer = new ObserveNotificationOrderer();
+		this.setNotificationOrderer(new ObserveNotificationOrderer());
 	}
 	
 
@@ -285,7 +285,7 @@ public  class CoapResource implements Resource {
 		if (relation == null) return; // because request did not try to establish a relation
 		
 		if (CoAP.ResponseCode.isSuccess(response.getCode())) {
-			response.getOptions().setObserve(notificationOrderer.getCurrent());
+			response.getOptions().setObserve(getNotificationOrderer().getCurrent());
 			
 			if (!relation.isEstablished()) {
 				relation.setEstablished(true);
@@ -719,7 +719,7 @@ public  class CoapResource implements Resource {
 	 * request that has established the relation.
 	 */
 	protected void notifyObserverRelations() {
-		notificationOrderer.getNextObserveNumber();
+		getNotificationOrderer().getNextObserveNumber();
 		for (ObserveRelation relation:observeRelations) {
 			relation.notifyObservers();
 		}
@@ -782,5 +782,13 @@ public  class CoapResource implements Resource {
 		if (parent == null)
 			return Collections.emptyList();
 		else return parent.getEndpoints();
+	}
+
+	public ObserveNotificationOrderer getNotificationOrderer() {
+		return notificationOrderer;
+	}
+
+	public void setNotificationOrderer(ObserveNotificationOrderer notificationOrderer) {
+		this.notificationOrderer = notificationOrderer;
 	}
 }
