@@ -599,7 +599,7 @@ public class CoAPEndpoint implements Endpoint {
 					Exchange exchange = matcher.receiveResponse(response);
 					if (exchange != null) {
 						exchange.setEndpoint(CoAPEndpoint.this);
-						response.setRTT(System.currentTimeMillis() - exchange.getTimestamp());
+						response.setRtt(System.currentTimeMillis() - exchange.getTimestamp());
 						coapstack.receiveResponse(exchange, response);
 					}
 				}

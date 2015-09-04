@@ -21,7 +21,6 @@ package org.eclipse.californium.core.coap;
 
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.CoAP.Type;
-import org.eclipse.californium.core.network.RemoteEndpoint;
 
 /**
  * Response represents a CoAP response to a CoAP request. A response is either a
@@ -33,10 +32,6 @@ public class Response extends Message {
 
 	/** The response code. */
 	private final CoAP.ResponseCode code;
-	
-	private long rtt;
-	
-	private RemoteEndpoint remoteEndpoint;
 
 	private boolean last = true;
 	
@@ -127,22 +122,6 @@ public class Response extends Message {
 	 */
 	public void setLast(boolean last) {
 		this.last = last;
-	}
-
-	public long getRTT() {
-		return rtt;
-	}
-
-	public void setRTT(long rtt) {
-		this.rtt = rtt;
-	}
-
-	public RemoteEndpoint getRemoteEndpoint() {
-		return remoteEndpoint;
-	}
-
-	public void setRemoteEndpoint(RemoteEndpoint remoteEndpoint) {
-		this.remoteEndpoint = remoteEndpoint;
 	}
 
 }

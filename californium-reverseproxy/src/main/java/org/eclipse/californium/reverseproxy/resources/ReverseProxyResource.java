@@ -10,11 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapObserveRelation;
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
+import org.eclipse.californium.core.coap.Message;
 import org.eclipse.californium.core.coap.OptionSet;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
@@ -27,6 +33,7 @@ import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.ResourceAttributes;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
 import org.eclipse.californium.reverseproxy.QoSParameters;
+import org.eclipse.californium.reverseproxy.ReverseProxy;
 
 
 public class ReverseProxyResource extends CoapResource {
@@ -50,8 +57,14 @@ public class ReverseProxyResource extends CoapResource {
 	private CoapClient client;
 	private CoapObserveRelation relation;
 	private Response lastNotificationMessage;
+	private ReverseProxy reverseProxy;
 	
-	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig) {
+	Lock lock;
+	Condition newNotification;
+
+	private byte[] lastPayload;
+	
+	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 		
 		this.uri = uri;
@@ -62,8 +75,10 @@ public class ReverseProxyResource extends CoapResource {
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
 		}
-		if(! this.getAttributes().getAttributeValues(LinkFormat.OBSERVABLE).isEmpty())
+		if(! this.getAttributes().getAttributeValues(LinkFormat.OBSERVABLE).isEmpty()){
 			this.setObservable(true);
+			setObserveType(Type.CON);
+		}
 		this.addObserver(new ReverseProxyResourceObserver(this));
 		notificationPeriodMin = 0;
 		notificationPeriodMax = Integer.MAX_VALUE;
@@ -73,6 +88,9 @@ public class ReverseProxyResource extends CoapResource {
 		scheduler = new Scheduler();
 		notificationTask = new NotificationTask();
 		notificationExecutor = Executors.newScheduledThreadPool(1);
+		this.reverseProxy = reverseProxy;
+		lock = new ReentrantLock();
+		newNotification = lock.newCondition();
 	}
 	
 	public long getRtt() {
@@ -101,13 +119,19 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param to_delete the Periodic Observing request that must be deleted
 	 */
 	public synchronized void deleteSubscriptionsFromClients(PeriodicRequest to_delete) {
-		if(to_delete != null)
+		LOGGER.info("deleteSubscriptionsFromClients");
+		if(to_delete != null){
+			RemoteEndpoint re = to_delete.getClientEndpoint();
+			this.qosParameters.remove(re);
 			this.subscriberList.remove(to_delete);
+		}
 		if(this.subscriberList.isEmpty()){
 			relation.proactiveCancel();
 			relation = null;
+			this.rtt = -1;
+			this.lastPayload = this.lastNotificationMessage.getPayload();
+			this.lastNotificationMessage = null;
 		}
-		schedule();
 	}
 
 	/**
@@ -142,13 +166,46 @@ public class ReverseProxyResource extends CoapResource {
 			else{
 				exchange.respond(res);
 			}
-		}else{
+		}else if((request.getOptions().getObserve() != null && request.getOptions().getObserve() == 1)){
+			Response responseForClients;
+			byte[] payload;
+			if(this.lastNotificationMessage == null){
+				//Proactive Cancel from client
+				responseForClients = new Response(ResponseCode.CONTENT);
+				// copy payload
+				payload = this.lastPayload;
+			} else {
+				responseForClients = new Response(this.lastNotificationMessage.getCode());
+				// copy payload
+				payload = this.lastNotificationMessage.getPayload();
+			}
+			responseForClients.setPayload(payload);
+
+			// copy every option
+			responseForClients.setOptions(new OptionSet());
+			responseForClients.setDestination(request.getSource());
+			responseForClients.setDestinationPort(request.getSourcePort());
+			responseForClients.setToken(request.getToken());
+			responseForClients.getOptions().removeObserve();
+			exchange.respond(responseForClients);
+		} else{
 			Response response = forwardRequest(exchange.advanced().getRequest());
 			exchange.respond(response);
 		}
 	}
 	
 	private Response sendLast(Request request, PeriodicRequest pr) {
+		lock.lock();
+		try {
+			while(this.lastNotificationMessage == null)
+					newNotification.await();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally{
+			lock.unlock();
+		}
+		
 		pr.setLastNotificationSent(this.lastNotificationMessage);
 		Date now = new Date();
 		long timestamp = now.getTime();
@@ -475,8 +532,10 @@ public class ReverseProxyResource extends CoapResource {
 		while(!schedule()) // delete the most demanding client
 		{
 			PeriodicRequest client = minPmaxClient(getSubscriberList());
-			LOGGER.info("Remove client:" + client.toString());
-			deleteSubscriptionFromProxy(client);
+			if(client != null){
+				LOGGER.info("Remove client:" + client.toString());
+				deleteSubscriptionFromProxy(client);
+			}
 		}
 	}
 
@@ -673,8 +732,6 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private class NotificationTask implements Runnable{
 
-		private static final long EXTIMATED_RTT = 1000;
-
 		@Override
 		public void run() {
 			while(relation != null){
@@ -686,10 +743,12 @@ public class ReverseProxyResource extends CoapResource {
 							
 							Date now = new Date();
 							long timestamp = now.getTime();
+							long clientRTT = reverseProxy.getClientRTT(pr.getClientEndpoint().getRemoteAddress(), pr.getClientEndpoint().getRemotePort());
 							long nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
-							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - EXTIMATED_RTT);
+							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
 							//System.out.println("timestamp " + timestamp);
 							//System.out.println("next Interval " + nextInterval);
+							//System.out.println("client RTT " + clientRTT);
 							//System.out.println("deadline " + deadline);
 							if(timestamp >= nextInterval){
 								//System.out.println("Time to send");
@@ -720,9 +779,12 @@ public class ReverseProxyResource extends CoapResource {
 					}
 				}
 				try {
-					Thread.sleep(delay);
+					lock.lock();
+					newNotification.await(delay, TimeUnit.MILLISECONDS);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+				} finally {
+					lock.unlock();
 				}
 			}
 		}

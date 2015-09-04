@@ -10,16 +10,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
-import java.util.Properties;
-import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -42,9 +37,9 @@ import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.CoAPMulticastEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.server.resources.Resource;
 import org.eclipse.californium.reverseproxy.resources.ReverseProxyResource;
+import org.eclipse.californium.reverseproxy.ReverseProxyHandlerImpl;
 
 public class ReverseProxy extends CoapServer {
 	
@@ -65,6 +60,8 @@ public class ReverseProxy extends CoapServer {
 	private int multicastMid;
 	
 	private Map<InetSocketAddress, Set<WebLink>> mapping;
+	
+	private Map<InetSocketAddress, Long> clientRTT;
 	
 	public ReverseProxy(){
 		Random rnd = new Random();
@@ -94,6 +91,7 @@ public class ReverseProxy extends CoapServer {
 			LOGGER.log(Level.WARNING, "Only IPv4");
 		}		
 		mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
+		clientRTT = new HashMap<InetSocketAddress, Long>();
 	}
 	
 	public ReverseProxy(String config){
@@ -103,9 +101,11 @@ public class ReverseProxy extends CoapServer {
 		try {
 			InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 5683);
 			unicastEndpoint = new CoAPEndpoint(address);
+			unicastEndpoint.addInterceptor(new ReverseProxyInterceptor(this));
 			this.addEndpoint(unicastEndpoint);
 			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+unicastEndpoint.getAddress().getHostName(), this.unicastEndpoint, this, this.handlerIPv4, config);
 			mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
+			clientRTT = new HashMap<InetSocketAddress, Long>();
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -171,7 +171,7 @@ public class ReverseProxy extends CoapServer {
 					URI uri = new URI("coap://"+sa.getKey().toString().substring(1)+l.getURI());
 					Resource res = new CoapResource(sa.getKey().toString().substring(1));
 					this.add(res);
-					Resource res2 = new ReverseProxyResource(l.getURI().substring(1), uri, l.getAttributes(), this.unicastEndpoint.getConfig());
+					Resource res2 = new ReverseProxyResource(l.getURI().substring(1), uri, l.getAttributes(), this.unicastEndpoint.getConfig(), this);
 					res.add(res2);
 				} catch (URISyntaxException e) {
 					System.err.println("Invalid URI: " + e.getMessage());
@@ -340,6 +340,30 @@ public class ReverseProxy extends CoapServer {
 			}
 
 		}
+	}
+
+	public void addClientRTT(InetAddress ip, int port, long rtt) {
+		try {
+			InetSocketAddress key = new InetSocketAddress(InetAddress.getByName(ip.getHostAddress()), port);
+			clientRTT.put(key, rtt);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	public long getClientRTT(InetAddress ip, int port) {
+		InetSocketAddress key;
+		try {
+			key = new InetSocketAddress(InetAddress.getByName(ip.getHostAddress()), port);
+			if(clientRTT.containsKey(key))
+				return clientRTT.get(key);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return 0;
 	}
 }
 

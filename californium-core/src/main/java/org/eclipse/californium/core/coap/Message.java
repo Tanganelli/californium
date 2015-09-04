@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.core.coap.CoAP.Type;
+import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.observe.ObserveManager;
 
 /**
@@ -102,6 +103,10 @@ public abstract class Message {
 	
 	/** The serialized message as byte array. */
 	private byte[] bytes;
+	
+	private RemoteEndpoint remoteEndpoint;
+	
+	private long rtt;
 	
 	/**
 	 * A list of all {@link ObserveManager} that should be notified when an
@@ -609,6 +614,22 @@ public abstract class Message {
 					handlers = new CopyOnWriteArrayList<MessageObserver>();
 			}
 		}
+	}
+
+	public RemoteEndpoint getRemoteEndpoint() {
+		return remoteEndpoint;
+	}
+
+	public void setRemoteEndpoint(RemoteEndpoint remoteEndpoint) {
+		this.remoteEndpoint = remoteEndpoint;
+	}
+
+	public long getRtt() {
+		return rtt;
+	}
+
+	public void setRtt(long rtt) {
+		this.rtt = rtt;
 	}
 
 }

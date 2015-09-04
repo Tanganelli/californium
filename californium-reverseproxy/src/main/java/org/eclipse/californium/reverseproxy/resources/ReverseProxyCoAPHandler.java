@@ -57,6 +57,9 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		long timestamp = now.getTime();
 		response.setTimestamp(timestamp);
 		ownerResource.setLastNotificationMessage(response);
+		ownerResource.lock.lock();
+		ownerResource.newNotification.signalAll();
+		ownerResource.lock.unlock();
 	}
 
 	@Override
