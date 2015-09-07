@@ -15,6 +15,7 @@ public class CLI {
 	private int pmax = 0;
 	private int stopCount = 0;
 	private String logFile;
+	private String ip = null;
 	
 	public CLI(String[] args){
 		this.args = args;
@@ -25,6 +26,7 @@ public class CLI {
 		options.addOption("pmax", true, "The pmax value (integer > 0)");
 		options.addOption("n", "number", true, "Number of notifications (integer > 0)");
 		options.addOption("l", "logging", true, "Logging File");
+		options.addOption("i", "localip", true, "Local client ip");
 		options.addOption("h", "help", false, "Show this help");
 	}
 	
@@ -38,6 +40,11 @@ public class CLI {
 
 			if (cmd.hasOption("h"))
 				help();
+			
+			if (cmd.hasOption("i")){
+				setIp(cmd.getOptionValue("i"));
+			}
+
 
 			if (cmd.hasOption("u")) {
 				String uri = cmd.getOptionValue("u");
@@ -136,6 +143,14 @@ public class CLI {
 
 	public void setLogFile(String logFile) {
 		this.logFile = logFile;
+	}
+
+	public String getIp() {
+		return ip;
+	}
+
+	public void setIp(String ip) {
+		this.ip = ip;
 	}
 
 }
