@@ -494,9 +494,15 @@ public class ReverseProxyResource extends CoapResource {
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		request.setURI(this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period);
 		request.send();
+		Response response;
 		try {
+			if(rtt == -1){
+				response = request.waitForResponse(5000);
+			} else
+			{
+				response = request.waitForResponse(rtt * WAIT_FACTOR);
+			}
 			// receive the response
-			Response response = request.waitForResponse(rtt * WAIT_FACTOR);
 
 			if (response != null) {
 				LOGGER.finer("Coap response received.");
