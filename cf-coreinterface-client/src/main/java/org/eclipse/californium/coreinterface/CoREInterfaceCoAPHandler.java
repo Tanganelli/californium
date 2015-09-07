@@ -56,14 +56,17 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		notificationsCount++;
 		if(timestampLast != -1 && timestamp < timestampLast + pmin){
 			LOGGER.severe("Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
+			System.out.println("ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
 			missDeadlines++;
 		}
 		if(timestampLast == -1){
 			timestampLast = timestamp;
 		}
 		LOGGER.info("Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		System.out.println("INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
+			System.out.println("ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
 		}
 		
