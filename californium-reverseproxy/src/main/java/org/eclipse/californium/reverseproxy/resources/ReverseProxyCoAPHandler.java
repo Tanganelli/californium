@@ -51,8 +51,13 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 				}
 			}
 		}
-
-		ownerResource.updateRTT(response.getRemoteEndpoint().getRTO());
+		System.out.println("*************************");
+		System.out.println("currentRTO: " + response.getRemoteEndpoint().getCurrentRTO());
+		System.out.println("RTO: " + response.getRemoteEndpoint().getRTO());
+		System.out.println("RTT_max: " + response.getRemoteEndpoint().RTT_max);
+		System.out.println("RTO_min: " + response.getRemoteEndpoint().RTO_min);
+		System.out.println("*************************");
+		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());
 		Date now = new Date();
 		long timestamp = now.getTime();
 		response.setTimestamp(timestamp);
