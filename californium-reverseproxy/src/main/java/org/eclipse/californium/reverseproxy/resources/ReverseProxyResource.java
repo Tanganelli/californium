@@ -131,6 +131,9 @@ public class ReverseProxyResource extends CoapResource {
 			this.rtt = -1;
 			this.lastPayload = this.lastNotificationMessage.getPayload();
 			this.lastNotificationMessage = null;
+		} else{
+			schedule();
+			setObservingQoS();
 		}
 	}
 
