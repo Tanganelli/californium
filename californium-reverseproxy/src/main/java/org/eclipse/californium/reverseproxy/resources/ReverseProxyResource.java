@@ -306,10 +306,16 @@ public class ReverseProxyResource extends CoapResource {
 
 		// accept the request sending a separate response to avoid the
 		// timeout in the requesting client
-		
+		Response receivedResponse;
 		try {
+			if(rtt == -1){
+				receivedResponse = outgoingRequest.waitForResponse(5000);
+			} else
+			{
+				receivedResponse = outgoingRequest.waitForResponse(rtt * WAIT_FACTOR);
+			}
 			// receive the response
-			Response receivedResponse = outgoingRequest.waitForResponse(rtt * WAIT_FACTOR);
+			
 
 			if (receivedResponse != null) {
 				LOGGER.finer("Coap response received.");
