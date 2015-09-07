@@ -67,6 +67,7 @@ public class CoREInterfcaceClient {
 				Endpoint endpoint = new CoAPEndpoint(address);
 				client.setEndpoint(endpoint);
 			} catch (UnknownHostException e1) {
+				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 		}
