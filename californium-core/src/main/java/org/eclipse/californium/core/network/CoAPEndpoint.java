@@ -635,6 +635,7 @@ public class CoAPEndpoint implements Endpoint {
 						Exchange exchange = matcher.receiveEmptyMessage(message);
 						if (exchange != null) {
 							exchange.setEndpoint(CoAPEndpoint.this);
+							message.setRtt(System.currentTimeMillis() - exchange.getTimestamp());
 							coapstack.receiveEmptyMessage(exchange, message);
 						}
 					}

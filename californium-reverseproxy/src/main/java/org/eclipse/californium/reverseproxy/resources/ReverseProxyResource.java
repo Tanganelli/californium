@@ -128,7 +128,6 @@ public class ReverseProxyResource extends CoapResource {
 		if(this.subscriberList.isEmpty()){
 			relation.proactiveCancel();
 			relation = null;
-			this.rtt = -1;
 			this.lastPayload = this.lastNotificationMessage.getPayload();
 			this.lastNotificationMessage = null;
 		} else{
@@ -494,6 +493,7 @@ public class ReverseProxyResource extends CoapResource {
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		request.setURI(this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period);
 		request.send();
+		LOGGER.info("setObservingQos - " + request);
 		Response response;
 		try {
 			if(rtt == -1){
