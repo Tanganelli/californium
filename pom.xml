@@ -72,17 +72,17 @@
 		<module>californium-proxy</module>
 		<module>californium-osgi</module>
 		<module>cf-plugtest-client</module>
-		<module>cf-plugtest-checker</module>
+		<!-- <module>cf-plugtest-checker</module>-->
 		<module>cf-plugtest-server</module>
 		<module>cf-helloworld-client</module>
 		<module>cf-helloworld-server</module>
 		<module>cf-cocoa</module>
-		<module>cf-secure</module>
+		<!-- <module>cf-secure</module> -->
 		<module>cf-proxy</module>
 		<module>cf-benchmark</module>
 		<module>californium-reverseproxy</module>
-    <module>cf-multicast-server</module>
-    <module>cf-coreinterface-client</module>
+	    <module>cf-multicast-server</module>
+	    <module>cf-coreinterface-client</module>
 	</modules>
 	
 	<distributionManagement>
