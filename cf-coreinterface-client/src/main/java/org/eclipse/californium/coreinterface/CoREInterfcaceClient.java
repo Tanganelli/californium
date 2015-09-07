@@ -1,6 +1,9 @@
 package org.eclipse.californium.coreinterface;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -13,6 +16,8 @@ import org.eclipse.californium.core.CoapObserveRelation;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
+import org.eclipse.californium.core.network.CoAPEndpoint;
+import org.eclipse.californium.core.network.Endpoint;
 
 
 
@@ -34,6 +39,7 @@ public class CoREInterfcaceClient {
 		int pmin = cli.getPmin();
 		int stop = cli.getStopCount();
 		String logFile = cli.getLogFile();
+		String ip = cli.getIp();
 		Lock lock = new ReentrantLock();
 		Condition notEnd = lock.newCondition();
 		try {
@@ -55,6 +61,17 @@ public class CoREInterfcaceClient {
 		
 		CoapClient client = new CoapClient();
 		client.setURI(putUri);
+		if(ip != null){
+			try {
+				InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName(ip), 1000);
+				Endpoint endpoint = new CoAPEndpoint(address);
+				client.setEndpoint(endpoint);
+			} catch (UnknownHostException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		
 		response = client.put("", MediaTypeRegistry.UNDEFINED);
 		if(response.getCode() == ResponseCode.CHANGED)
 		{
