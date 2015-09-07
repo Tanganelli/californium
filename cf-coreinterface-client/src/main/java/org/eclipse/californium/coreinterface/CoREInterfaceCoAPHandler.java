@@ -1,6 +1,9 @@
 package org.eclipse.californium.coreinterface;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -56,17 +59,17 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		notificationsCount++;
 		if(timestampLast != -1 && timestamp < timestampLast + pmin){
 			LOGGER.severe("Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
-			System.out.println("ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
+			System.out.println(getNow() + "ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
 			missDeadlines++;
 		}
 		if(timestampLast == -1){
 			timestampLast = timestamp;
 		}
 		LOGGER.info("Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
-		System.out.println("INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
-			System.out.println("ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
+			System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
 		}
 		
@@ -103,5 +106,10 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	public void setMissDeadlines(int missDeadlines) {
 		this.missDeadlines = missDeadlines;
 	}
-
+	
+	private String getNow(){
+		Date now = new Date();
+		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSSS ");
+		return dateFormat.format(now);
+	}
 }
