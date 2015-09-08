@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +43,8 @@ public class ReverseProxyResource extends CoapResource {
 	/** The factor that multiplied for the actual RTT 
 	 * is used as the timeout for waiting replies from the end device.*/
 	private static final long WAIT_FACTOR = 10;
+
+	private static final long PERIOD_RTT = 5000; // 5 sec
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
@@ -63,6 +67,8 @@ public class ReverseProxyResource extends CoapResource {
 	Condition newNotification;
 
 	private byte[] lastPayload;
+	private TimerTask rttTask;
+	
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
@@ -91,6 +97,9 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
+		Timer timer = new Timer(true);
+		rttTask = new RttTask();
+	    timer.scheduleAtFixedRate(rttTask, 0, PERIOD_RTT);
 	}
 	
 	public long getRtt() {
@@ -838,4 +847,13 @@ public class ReverseProxyResource extends CoapResource {
 			
 		}	
 	}
+	
+	public class RttTask extends TimerTask {
+		 
+	    @Override
+	    public void run() {
+	        evaluateRtt();
+	    }
+	}
+	
 }

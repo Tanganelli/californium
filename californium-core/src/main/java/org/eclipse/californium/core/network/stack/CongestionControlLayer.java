@@ -112,7 +112,7 @@ public abstract class CongestionControlLayer extends ReliabilityLayer {
 	private boolean processMessage(Exchange exchange, Message message) {
 
 		Type messageType = message.getType();
-
+		
 		// Put into queues for NON or CON messages
 		if (messageType == Type.CON) {
 			// Check if NSTART is not reached yet for confirmable transmissions
