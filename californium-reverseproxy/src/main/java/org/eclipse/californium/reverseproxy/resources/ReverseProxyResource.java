@@ -640,12 +640,14 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return true if success, false otherwise.
 	 */
 	private synchronized ScheduleResults schedule(){
-		if(qosParameters.size() == 0) return new ScheduleResults(0, Integer.MAX_VALUE, this.rtt, true);
+		long rtt = this.rtt;
+		LOGGER.info("schedule() - Rtt: " + this.rtt);
+		if(qosParameters.size() == 0) return new ScheduleResults(0, Integer.MAX_VALUE, rtt, true);
 		List<Task> tasks = new ArrayList<Task>();
 		for(RemoteEndpoint re : qosParameters.keySet()){
 			tasks.add(new Task(re, qosParameters.get(re)));
 		}
-		long rtt = this.rtt;
+		
 		Periods periods = scheduler.schedule(tasks, rtt);
 		
 		int periodMax = periods.getPmax();
