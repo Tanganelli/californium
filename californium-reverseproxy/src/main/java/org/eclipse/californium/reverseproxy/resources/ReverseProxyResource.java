@@ -41,7 +41,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * is used as the timeout for waiting replies from the end device.*/
 	private static final long WAIT_FACTOR = 10;
 
-	private static final long PERIOD_RTT = 10000; // 10 sec
+	private static final long PERIOD_RTT = 2000; // 2 sec
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
@@ -62,6 +62,8 @@ public class ReverseProxyResource extends CoapResource {
 	
 	Lock lock;
 	Condition newNotification;
+	
+
 
 	private byte[] lastPayload;
 	private RttTask rttTask;
