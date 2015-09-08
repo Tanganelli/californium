@@ -358,7 +358,6 @@ public class ReverseProxyResource extends CoapResource {
 		rtt = currentRTO;
 		if(currentRTO > lastValidRtt){ //worse RTT
 			scheduleFeasibles();
-			lastValidRtt = currentRTO;
 		}
 	}
 
