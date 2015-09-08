@@ -155,7 +155,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param exchange the CoapExchange for the simple API
 	 */
-	public void handleGET(CoapExchange exchange) {
+	public synchronized void handleGET(CoapExchange exchange) {
 		Request request = exchange.advanced().getRequest();
 		if(request.getOptions().getObserve() != null && request.getOptions().getObserve() == 0)
 		{
@@ -163,15 +163,13 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = pr.getResponseCode();
 			// create Observe request for the first client
 			if(res == null){
-				synchronized(this){
-					if(relation == null){
-						relation = client.observe(new ReverseProxyCoAPHandler(this));
-						notificationExecutor.submit(notificationTask);
-						rttExecutor.submit(rttTask);
-					} else {
-						Response responseForClients = sendLast(request, pr);
-						exchange.respond(responseForClients);
-					}
+				if(relation == null){
+					relation = client.observe(new ReverseProxyCoAPHandler(this));
+					notificationExecutor.submit(notificationTask);
+					rttExecutor.submit(rttTask);
+				} else {
+					Response responseForClients = sendLast(request, pr);
+					exchange.respond(responseForClients);
 				}
 			}else if(res == ResponseCode.CONTENT){
 				Response responseForClients = sendLast(request, pr);
