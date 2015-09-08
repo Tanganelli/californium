@@ -26,6 +26,7 @@ import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.coap.CoAP.Code;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.CoAP.Type;
+import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -145,6 +146,18 @@ public class ReverseProxyResource extends CoapResource {
 		}
 	}
 
+	@Override
+	public void handleRequest(final Exchange exchange) {
+		exchange.sendAccept();
+		Code code = exchange.getRequest().getCode();
+		switch (code) {
+			case GET:	handleGET(new CoapExchange(exchange, this)); break;
+			case POST:	handlePOST(new CoapExchange(exchange, this)); break;
+			case PUT:	handlePUT(new CoapExchange(exchange, this)); break;
+			case DELETE: handleDELETE(new CoapExchange(exchange, this)); break;
+		}
+	}
+	
 	/**
 	 * Handles the GET request in the given CoAPExchange. Checks if it is an observing request
 	 * for which pmin and pmax have been already set. 
