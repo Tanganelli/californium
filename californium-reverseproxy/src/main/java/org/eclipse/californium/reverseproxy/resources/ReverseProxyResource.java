@@ -8,8 +8,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +20,6 @@ import org.eclipse.californium.core.CoapObserveRelation;
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
-import org.eclipse.californium.core.coap.Message;
 import org.eclipse.californium.core.coap.OptionSet;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
@@ -44,7 +41,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * is used as the timeout for waiting replies from the end device.*/
 	private static final long WAIT_FACTOR = 10;
 
-	private static final long PERIOD_RTT = 5000; // 5 sec
+	private static final long PERIOD_RTT = 10000; // 10 sec
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
@@ -67,8 +64,7 @@ public class ReverseProxyResource extends CoapResource {
 	Condition newNotification;
 
 	private byte[] lastPayload;
-	private TimerTask rttTask;
-	private Timer timer;
+	private RttTask rttTask;
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
@@ -97,7 +93,6 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		timer = new Timer(true);
 		rttTask = new RttTask();
 	}
 	
@@ -165,7 +160,7 @@ public class ReverseProxyResource extends CoapResource {
 				if(relation == null){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
-					timer.scheduleAtFixedRate(rttTask, 0, PERIOD_RTT);
+					notificationExecutor.submit(rttTask);
 				} else {
 					Response responseForClients = sendLast(request, pr);
 					exchange.respond(responseForClients);
@@ -850,12 +845,20 @@ public class ReverseProxyResource extends CoapResource {
 		}	
 	}
 	
-	public class RttTask extends TimerTask {
+	public class RttTask implements Runnable {
 		 
 	    @Override
 	    public void run() {
-	    	while(relation != null)
+	    	while(relation != null){
+	    		LOGGER.info("RttTask");
 	    		updateRTT(evaluateRtt());
+	    		try {
+					Thread.sleep(PERIOD_RTT);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    	}
 	    }
 	}
 	
