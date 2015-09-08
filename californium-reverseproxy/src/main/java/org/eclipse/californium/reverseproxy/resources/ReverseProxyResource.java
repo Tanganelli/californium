@@ -50,6 +50,7 @@ public class ReverseProxyResource extends CoapResource {
 	private final Scheduler scheduler;
 	private final NotificationTask notificationTask;
     private final ScheduledExecutorService notificationExecutor;
+    private final ScheduledExecutorService rttExecutor;
     
 	private long notificationPeriodMin;
 	private long notificationPeriodMax;
@@ -92,6 +93,7 @@ public class ReverseProxyResource extends CoapResource {
 		scheduler = new Scheduler();
 		notificationTask = new NotificationTask();
 		notificationExecutor = Executors.newScheduledThreadPool(1);
+		rttExecutor = Executors.newScheduledThreadPool(1);
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
@@ -162,7 +164,7 @@ public class ReverseProxyResource extends CoapResource {
 				if(relation == null){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
-					notificationExecutor.submit(rttTask);
+					rttExecutor.submit(rttTask);
 				} else {
 					Response responseForClients = sendLast(request, pr);
 					exchange.respond(responseForClients);
