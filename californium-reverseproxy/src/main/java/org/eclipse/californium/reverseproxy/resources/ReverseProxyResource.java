@@ -42,6 +42,8 @@ public class ReverseProxyResource extends CoapResource {
 	private static final long WAIT_FACTOR = 10;
 
 	private static final long PERIOD_RTT = 10000; // 10 sec
+
+	private static final long THRESHOLD = 500; // 500 ms as threshold
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
@@ -355,7 +357,7 @@ public class ReverseProxyResource extends CoapResource {
 	public void updateRTT(long currentRTO) {
 		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(currentRTO));
 		rtt = currentRTO;
-		if(currentRTO > lastValidRtt){ //worse RTT
+		if((currentRTO - THRESHOLD) > lastValidRtt){ //worse RTT
 			scheduleFeasibles();
 		}
 	}
