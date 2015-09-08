@@ -599,7 +599,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param reverseProxyResource 
 	 */
 	private boolean scheduleNewRequest(QoSParameters params) {
-		if(this.rtt == -1) evaluateRtt();
+		if(this.rtt == -1) this.rtt = evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
 		
 		return schedule();
@@ -639,11 +639,13 @@ public class ReverseProxyResource extends CoapResource {
 	
 	/**
 	 * Evaluates RTT of the end device by issuing a GET request.
+	 * @return 
 	 */
-	private void evaluateRtt() {
+	private long evaluateRtt() {
 		Request request = new Request(Code.GET, Type.CON);
 		request.setURI(this.uri);
 		request.send(this.getEndpoints().get(0));
+		long rtt = 0;
 		try {
 			// receive the response (wait for 1 second * WAIT_FACTOR)
 			Response receivedResponse = request.waitForResponse(1000 * WAIT_FACTOR);
@@ -651,7 +653,7 @@ public class ReverseProxyResource extends CoapResource {
 			if (receivedResponse != null) {
 				LOGGER.finer("Coap response received.");
 				// get RTO from the response
-				this.rtt = receivedResponse.getRemoteEndpoint().getCurrentRTO();
+				 rtt = receivedResponse.getRemoteEndpoint().getCurrentRTO();
 				
 			} else {
 				LOGGER.warning("No response received.");
@@ -659,7 +661,7 @@ public class ReverseProxyResource extends CoapResource {
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
 		}
-		
+		return rtt;
 	}	
 	
 	/**
@@ -852,7 +854,7 @@ public class ReverseProxyResource extends CoapResource {
 		 
 	    @Override
 	    public void run() {
-	        evaluateRtt();
+	        updateRTT(evaluateRtt());
 	    }
 	}
 	
