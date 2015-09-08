@@ -66,7 +66,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	Lock lock;
 	Condition newNotification;
-	
+	Lock lockRelation;
 
 
 	private byte[] lastPayload;
@@ -78,7 +78,10 @@ public class ReverseProxyResource extends CoapResource {
 		this.uri = uri;
 		this.rtt = -1;
 		this.networkConfig = networkConfig;
-		this.qosParameters = Collections.synchronizedMap(new HashMap<RemoteEndpoint, QoSParameters>());
+		
+		qosParameters = Collections.synchronizedMap(new HashMap<RemoteEndpoint, QoSParameters>());
+		subscriberList = Collections.synchronizedList(new ArrayList<PeriodicRequest>());
+		
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
@@ -90,7 +93,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.addObserver(new ReverseProxyResourceObserver(this));
 		notificationPeriodMin = 0;
 		notificationPeriodMax = Integer.MAX_VALUE;
-		subscriberList = new ArrayList<PeriodicRequest>();
+		
 		client = new CoapClient(this.uri);
 		relation = null;
 		scheduler = new Scheduler();
@@ -100,7 +103,9 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
+		lockRelation = new ReentrantLock();
 		rttTask = new RttTask();
+		
 	}
 	
 	public long getRtt() {
@@ -119,7 +124,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.lastNotificationMessage = lastNotificationMessage;
 	}
 	
-	public synchronized List<PeriodicRequest> getSubscriberList() {
+	public List<PeriodicRequest> getSubscriberList() {
 		return this.subscriberList;
 	}
 
@@ -128,7 +133,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param to_delete the Periodic Observing request that must be deleted
 	 */
-	public synchronized void deleteSubscriptionsFromClients(PeriodicRequest to_delete) {
+	public void deleteSubscriptionsFromClients(PeriodicRequest to_delete) {
 		LOGGER.info("deleteSubscriptionsFromClients");
 		if(to_delete != null){
 			RemoteEndpoint re = to_delete.getClientEndpoint();
@@ -168,7 +173,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param exchange the CoapExchange for the simple API
 	 */
-	public synchronized void handleGET(CoapExchange exchange) {
+	public void handleGET(CoapExchange exchange) {
 		Request request = exchange.advanced().getRequest();
 		if(request.getOptions().getObserve() != null && request.getOptions().getObserve() == 0)
 		{
@@ -176,6 +181,7 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = pr.getResponseCode();
 			// create Observe request for the first client
 			if(res == null){
+				lockRelation.lock();
 				if(relation == null){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
@@ -184,6 +190,7 @@ public class ReverseProxyResource extends CoapResource {
 					Response responseForClients = sendLast(request, pr);
 					exchange.respond(responseForClients);
 				}
+				lockRelation.unlock();
 			}else if(res == ResponseCode.CONTENT){
 				Response responseForClients = sendLast(request, pr);
 				exchange.respond(responseForClients);
@@ -603,7 +610,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param client the PeriodicRequest that must be deleted
 	 */
-	private synchronized void deleteSubscriptionFromProxy(PeriodicRequest client) {
+	private void deleteSubscriptionFromProxy(PeriodicRequest client) {
 		// TODO delete subscription with client with an RST Message
 		qosParameters.remove(client.getClientEndpoint());
 		subscriberList.remove(client);
