@@ -41,7 +41,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * is used as the timeout for waiting replies from the end device.*/
 	private static final long WAIT_FACTOR = 10;
 
-	private static final long PERIOD_RTT = 2000; // 2 sec
+	private static final long PERIOD_RTT = 10000; // 10 sec
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
@@ -131,15 +131,16 @@ public class ReverseProxyResource extends CoapResource {
 			RemoteEndpoint re = to_delete.getClientEndpoint();
 			this.qosParameters.remove(re);
 			this.subscriberList.remove(to_delete);
-		}
-		if(this.subscriberList.isEmpty()){
-			relation.proactiveCancel();
-			relation = null;
-			this.lastPayload = this.lastNotificationMessage.getPayload();
-			this.lastNotificationMessage = null;
-		} else{
-			schedule();
-			setObservingQoS();
+		
+			if(this.subscriberList.isEmpty()){
+				relation.proactiveCancel();
+				relation = null;
+				this.lastPayload = this.lastNotificationMessage.getPayload();
+				this.lastNotificationMessage = null;
+			} else{
+				schedule();
+				setObservingQoS();
+			}
 		}
 	}
 
@@ -356,8 +357,8 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(currentRTO));
 		rtt = currentRTO;
 		if(currentRTO > lastValidRtt){ //worse RTT
-			lastValidRtt = currentRTO;
 			scheduleFeasibles();
+			lastValidRtt = currentRTO;
 		}
 	}
 
@@ -394,25 +395,19 @@ public class ReverseProxyResource extends CoapResource {
 			}
 			// Try scheduling
 			else if(scheduleNewRequest(params)){
-				params.setAllowed(true);
-				qosParameters.put(remoteEndpoint, params);
-				ResponseCode res = setObservingQoS();
-				if(res == null){
-					// Observe can be set
-					PeriodicRequest pr = new PeriodicRequest(null);
-					pr.setAllowed(true);
-					pr.setPmax(params.getPmax());
-					pr.setPmin(params.getPmin());
-					pr.setClientEndpoint(remoteEndpoint);
-					pr.setCommittedPeriod(this.notificationPeriodMax);
-					pr.setExchange(exchange);
-					pr.setToken(request.getToken());
-					this.subscriberList.add(pr);
-					return pr;
-				}
-				//else send error back to the client
-				qosParameters.remove(remoteEndpoint);
-				return new PeriodicRequest(res);
+				
+				// Observe can be set
+				PeriodicRequest pr = new PeriodicRequest(null);
+				pr.setAllowed(true);
+				pr.setPmax(params.getPmax());
+				pr.setPmin(params.getPmin());
+				pr.setClientEndpoint(remoteEndpoint);
+				pr.setCommittedPeriod(this.notificationPeriodMax);
+				pr.setExchange(exchange);
+				pr.setToken(request.getToken());
+				this.subscriberList.add(pr);
+				return pr;
+				
 			} else{
 				// Scheduling is not feasible
 				qosParameters.remove(remoteEndpoint);
@@ -495,7 +490,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return the Error ResponseCode or null if success.
 	 */
-	private ResponseCode setObservingQoS() {
+	private void setObservingQoS() {
 		Request request = new Request(Code.PUT, Type.CON);
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
@@ -519,14 +514,10 @@ public class ReverseProxyResource extends CoapResource {
 				
 			} else {
 				LOGGER.warning("No response received.");
-				return ResponseCode.GATEWAY_TIMEOUT;
 			}
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
-			return ResponseCode.INTERNAL_SERVER_ERROR;
 		}
-		
-		return null;
 	}
 
 	/**
@@ -552,14 +543,46 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private void scheduleFeasibles() {
 		LOGGER.finer("ScheduleFeasible");
-		while(!schedule()) // delete the most demanding client
+		boolean end = false;
+		while(!end) // delete the most demanding client
 		{
-			PeriodicRequest client = minPmaxClient(getSubscriberList());
-			if(client != null){
-				LOGGER.info("Remove client:" + client.toString());
-				deleteSubscriptionFromProxy(client);
+			ScheduleResults ret = schedule();
+			end = ret.isValid();
+			if(!end){
+				PeriodicRequest client = minPmaxClient(getSubscriberList());
+				if(client != null){
+					LOGGER.info("Remove client:" + client.toString());
+					deleteSubscriptionFromProxy(client);
+				}
+				
 			}
+			else{
+				boolean periodChanged = updatePeriods(ret);
+				if(periodChanged){
+					setObservingQoS();
+				}
+			}
+			
 		}
+	}
+
+	private boolean updatePeriods(ScheduleResults ret) {
+		int pmin = ret.getPmin();
+		int pmax = ret.getPmax();
+		this.lastValidRtt = ret.getLastRtt();
+		boolean changed = false;
+		if(this.notificationPeriodMin == 0 || (this.notificationPeriodMin != 0 && this.notificationPeriodMin != pmin)){
+			this.notificationPeriodMin = pmin;
+			changed = true;
+		} 
+		if(this.notificationPeriodMax == Integer.MAX_VALUE ||
+				(this.notificationPeriodMax != Integer.MAX_VALUE && this.notificationPeriodMax != pmax)){
+			this.notificationPeriodMax = pmax;
+			changed = true;
+		} 
+		
+		return changed;
+		
 	}
 
 	/**
@@ -600,8 +623,16 @@ public class ReverseProxyResource extends CoapResource {
 	private boolean scheduleNewRequest(QoSParameters params) {
 		if(this.rtt == -1) this.rtt = evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
-		
-		return schedule();
+		ScheduleResults ret = schedule();
+		if(ret.isValid()){
+			boolean periodChanged = updatePeriods(ret);
+			if(periodChanged){
+				setObservingQoS();
+			}
+			return true;
+		}
+
+		return false;
 	}
 	
 	/**
@@ -610,30 +641,29 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private synchronized boolean schedule(){
-		if(qosParameters.size() == 0) return true;
+	private synchronized ScheduleResults schedule(){
+		if(qosParameters.size() == 0) return new ScheduleResults(0, Integer.MAX_VALUE, this.rtt, true);
 		List<Task> tasks = new ArrayList<Task>();
 		for(RemoteEndpoint re : qosParameters.keySet()){
 			tasks.add(new Task(re, qosParameters.get(re)));
 		}
-		//TODO add Max-Age considerations
+		long rtt = this.rtt;
 		Periods periods = scheduler.schedule(tasks, rtt);
-		for(Task t : tasks){
-			if(qosParameters.containsKey(t.getClient())){
-				QoSParameters p = qosParameters.get(t.getClient());
-				p.setAllowed(true);
-				qosParameters.put(t.getClient(), p);
+		
+		int periodMax = periods.getPmax();
+		int periodMin = periods.getPmin();
+		
+		if(periodMax > rtt){
+			for(Task t : tasks){
+				if(qosParameters.containsKey(t.getClient())){
+					QoSParameters p = qosParameters.get(t.getClient());
+					p.setAllowed(true);
+					qosParameters.put(t.getClient(), p);
+				}
 			}
+			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
-		long periodMax = periods.getPmax();
-		long periodMin = periods.getPmin();
-		if(periodMax > this.rtt){
-			notificationPeriodMax = periodMax;
-			notificationPeriodMin = periodMin;
-			lastValidRtt = rtt;
-			return true;
-		}
-		return false;
+		return new ScheduleResults(periodMin, periodMax, rtt, false);
 	}
 	
 	/**
