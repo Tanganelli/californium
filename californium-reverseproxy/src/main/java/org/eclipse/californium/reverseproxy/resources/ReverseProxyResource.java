@@ -68,7 +68,7 @@ public class ReverseProxyResource extends CoapResource {
 
 	private byte[] lastPayload;
 	private TimerTask rttTask;
-	
+	private Timer timer;
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
@@ -97,9 +97,8 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		Timer timer = new Timer(true);
+		timer = new Timer(true);
 		rttTask = new RttTask();
-	    timer.scheduleAtFixedRate(rttTask, 0, PERIOD_RTT);
 	}
 	
 	public long getRtt() {
@@ -166,6 +165,7 @@ public class ReverseProxyResource extends CoapResource {
 				if(relation == null){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
+					timer.scheduleAtFixedRate(rttTask, 0, PERIOD_RTT);
 				} else {
 					Response responseForClients = sendLast(request, pr);
 					exchange.respond(responseForClients);
@@ -854,7 +854,8 @@ public class ReverseProxyResource extends CoapResource {
 		 
 	    @Override
 	    public void run() {
-	        updateRTT(evaluateRtt());
+	    	while(relation != null)
+	    		updateRTT(evaluateRtt());
 	    }
 	}
 	
