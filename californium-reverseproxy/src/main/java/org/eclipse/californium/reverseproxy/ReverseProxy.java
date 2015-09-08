@@ -99,7 +99,7 @@ public class ReverseProxy extends CoapServer {
 		multicastMid = rnd.nextInt(65535);
 		handlerIPv4 = new ReverseProxyHandlerImpl(this);
 		try {
-			InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 5683);
+			InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 5683);
 			unicastEndpoint = new CoAPEndpoint(address);
 			unicastEndpoint.addInterceptor(new ReverseProxyInterceptor(this));
 			this.addEndpoint(unicastEndpoint);
