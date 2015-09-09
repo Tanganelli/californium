@@ -58,17 +58,17 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		long timestamp = now.getTime();
 		notificationsCount++;
 		if(timestampLast != -1 && timestamp < timestampLast + pmin){
-			LOGGER.severe("Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
+			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
 			System.out.println(getNow() + "ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
 			missDeadlines++;
 		}
 		if(timestampLast == -1){
 			timestampLast = timestamp;
 		}
-		LOGGER.info("Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		if(timestamp > timestampLast + pmax){
-			LOGGER.severe("Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
+			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
 		}
@@ -110,6 +110,6 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	private String getNow(){
 		Date now = new Date();
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSSS ");
-		return dateFormat.format(now) + " Client (" + pmin + "-" + pmax + ")";
+		return dateFormat.format(now);
 	}
 }
