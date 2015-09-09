@@ -110,6 +110,6 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	private String getNow(){
 		Date now = new Date();
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSSS ");
-		return dateFormat.format(now);
+		return dateFormat.format(now) + " Client (" + pmin + "-" + pmax + ")";
 	}
 }
