@@ -97,12 +97,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		rttTask = new RttTask();
-		ConsoleHandler handler = new ConsoleHandler();
-		// PUBLISH this level
-		handler.setLevel(Level.FINER);
-		LOGGER.addHandler(handler);
-		
+		rttTask = new RttTask();		
 	}
 	
 	@Override
