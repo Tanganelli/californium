@@ -244,7 +244,7 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.INFO, "getLast(" + request + ", " + pr + ")");
 		lock.lock();
 		try {
-			while(relation.getCurrent() == null)
+			while(relation == null || relation.getCurrent() == null)
 					newNotification.await();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
