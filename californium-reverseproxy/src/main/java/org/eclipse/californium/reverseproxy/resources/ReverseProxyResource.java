@@ -196,7 +196,7 @@ public class ReverseProxyResource extends CoapResource {
 		if(request.getOptions().getObserve() != null && request.getOptions().getObserve() == 0)
 		{
 			//Observe Request
-			exchange.advanced().sendAccept();
+			//exchange.advanced().sendAccept();
 			PeriodicRequest pr = handleGETCoRE(exchange);
 			ResponseCode res = pr.getResponseCode();
 			if(res == ResponseCode.CONTENT){
