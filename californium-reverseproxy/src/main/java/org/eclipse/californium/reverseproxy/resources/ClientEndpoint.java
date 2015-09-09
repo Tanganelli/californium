@@ -23,7 +23,22 @@ public class ClientEndpoint {
 		this.port = port;
 	}
 	
+	@Override
 	public String toString(){
 		return address.getHostAddress() + ":" + String.valueOf(port);
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof ClientEndpoint)) {
+		    return false;
+		}
+		ClientEndpoint other = (ClientEndpoint) o;
+		return this.address.equals(other.getAddress()) && this.port == other.getPort();
+	}
+	
+	@Override
+	public int hashCode(){
+	   return new String(this.address + ":" + this.port).hashCode();
 	}
 }
