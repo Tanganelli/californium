@@ -16,6 +16,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapObserveRelation;
@@ -38,6 +39,9 @@ import org.eclipse.californium.reverseproxy.ReverseProxy;
 
 
 public class ReverseProxyResource extends CoapResource {
+	
+	/** The logger. */
+	protected final static Logger LOGGER = Logger.getLogger(CoapResource.class.getCanonicalName());
 
 	/** The factor that multiplied for the actual RTT 
 	 * is used as the timeout for waiting replies from the end device.*/
@@ -97,7 +101,9 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		rttTask = new RttTask();		
+		rttTask = new RttTask();	
+		
+		LOGGER.setLevel(Level.ALL);
 	}
 	
 	@Override
