@@ -77,6 +77,10 @@ public class ReverseProxyResource extends CoapResource {
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 		LOGGER.setLevel(Level.ALL);
+		System.out.println(LOGGER.getHandlers());
+		for(Handler h : LOGGER.getHandlers()){
+			System.out.println(h.getClass() + " - "+ h.getLevel());
+		}
 		LOGGER.info("INFO");
 		LOGGER.fine("FINE");
 		LOGGER.finer("FINER");
