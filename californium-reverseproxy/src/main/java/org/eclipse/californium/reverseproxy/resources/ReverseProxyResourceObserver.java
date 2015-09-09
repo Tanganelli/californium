@@ -52,9 +52,7 @@ public class ReverseProxyResourceObserver implements ResourceObserver{
 
 	@Override
 	public void removedObserveRelation(ObserveRelation relation) {
-		ownerResource.generalLock.lock();
 		Map<RemoteEndpoint, PeriodicRequest> tmp = ownerResource.getSubscriberList();
-		ownerResource.generalLock.unlock();
 		PeriodicRequest to_delete = null;
 		Exchange exchange = relation.getExchange();
 		for(PeriodicRequest pr : tmp.values()){

@@ -182,7 +182,8 @@ public class ReverseProxyResource extends CoapResource {
 			if(res == null){
 				generalLock.lock();
 				if(relation == null){
-					relation = client.observe(new ReverseProxyCoAPHandler(this));
+					relation = client.observeAndWait(new ReverseProxyCoAPHandler(this));
+					this.lastNotificationMessage = relation.getCurrent().advanced();
 					notificationExecutor.submit(notificationTask);
 					rttExecutor.submit(rttTask);
 				} else {

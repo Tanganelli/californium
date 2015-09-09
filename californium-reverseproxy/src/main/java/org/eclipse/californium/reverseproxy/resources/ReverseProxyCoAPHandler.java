@@ -21,36 +21,34 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 	public void onLoad(CoapResponse coapResponse) {
 		Response response = coapResponse.advanced();
 		ownerResource.getNotificationOrderer().getNextObserveNumber();
-		if(ownerResource.getLastNotificationMessage() == null){
-			ownerResource.generalLock.lock();
-			Collection<PeriodicRequest> tmp = ownerResource.getSubscriberList().values();
-			ownerResource.generalLock.unlock();
-			for(PeriodicRequest pr : tmp){
-				if(pr.isAllowed()){
-					pr.setLastNotificationSent(response);
-					Date now = new Date();
-					long timestamp = now.getTime();
-					pr.setTimestampLastNotificationSent(timestamp);
-					Response responseForClients = new Response(response.getCode());
-					// copy payload
-					byte[] payload = response.getPayload();
-					responseForClients.setPayload(payload);
-		
-					// copy the timestamp
-					
-					responseForClients.setTimestamp(timestamp);
-		
-					// copy every option
-					responseForClients.setOptions(new OptionSet(response.getOptions()));
-					responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);		
-					responseForClients.setDestination(pr.getClientEndpoint().getRemoteAddress());
-					responseForClients.setDestinationPort(pr.getClientEndpoint().getRemotePort());
-					responseForClients.setToken(pr.getToken());
-					pr.getExchange().respond(responseForClients);
-					
-				}
-			}
-		}
+//		if(ownerResource.getLastNotificationMessage() == null){
+//			Collection<PeriodicRequest> tmp = ownerResource.getSubscriberList().values();
+//			for(PeriodicRequest pr : tmp){
+//				if(pr.isAllowed()){
+//					pr.setLastNotificationSent(response);
+//					Date now = new Date();
+//					long timestamp = now.getTime();
+//					pr.setTimestampLastNotificationSent(timestamp);
+//					Response responseForClients = new Response(response.getCode());
+//					// copy payload
+//					byte[] payload = response.getPayload();
+//					responseForClients.setPayload(payload);
+//		
+//					// copy the timestamp
+//					
+//					responseForClients.setTimestamp(timestamp);
+//		
+//					// copy every option
+//					responseForClients.setOptions(new OptionSet(response.getOptions()));
+//					responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);		
+//					responseForClients.setDestination(pr.getClientEndpoint().getRemoteAddress());
+//					responseForClients.setDestinationPort(pr.getClientEndpoint().getRemotePort());
+//					responseForClients.setToken(pr.getToken());
+//					pr.getExchange().respond(responseForClients);
+//					
+//				}
+//			}
+//		}
 		/*System.out.println("*************************");
 		System.out.println("currentRTO: " + response.getRemoteEndpoint().getCurrentRTO());
 		System.out.println("RTO: " + response.getRemoteEndpoint().getRTO());
