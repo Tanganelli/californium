@@ -3,7 +3,7 @@ package org.eclipse.californium.reverseproxy.resources;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -48,8 +48,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	private final URI uri;
 	private final NetworkConfig networkConfig;
-	private final Map<RemoteEndpoint, QoSParameters> qosParameters;
-	private final List<PeriodicRequest> subscriberList;
+	private final Map<RemoteEndpoint, PeriodicRequest> subscriberList;
 	private final Scheduler scheduler;
 	private final NotificationTask notificationTask;
     private final ScheduledExecutorService notificationExecutor;
@@ -66,7 +65,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	Lock lock;
 	Condition newNotification;
-	Lock lockRelation;
+	Lock generalLock;
 
 
 	private byte[] lastPayload;
@@ -79,8 +78,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.rtt = -1;
 		this.networkConfig = networkConfig;
 		
-		qosParameters = Collections.synchronizedMap(new HashMap<RemoteEndpoint, QoSParameters>());
-		subscriberList = Collections.synchronizedList(new ArrayList<PeriodicRequest>());
+		subscriberList = new HashMap<RemoteEndpoint, PeriodicRequest>();
 		
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
@@ -103,7 +101,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		lockRelation = new ReentrantLock();
+		generalLock = new ReentrantLock();
 		rttTask = new RttTask();
 		
 	}
@@ -124,7 +122,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.lastNotificationMessage = lastNotificationMessage;
 	}
 	
-	public List<PeriodicRequest> getSubscriberList() {
+	public Map<RemoteEndpoint, PeriodicRequest> getSubscriberList() {
 		return this.subscriberList;
 	}
 
@@ -135,10 +133,10 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	public void deleteSubscriptionsFromClients(PeriodicRequest to_delete) {
 		LOGGER.info("deleteSubscriptionsFromClients");
+		generalLock.lock();
 		if(to_delete != null){
 			RemoteEndpoint re = to_delete.getClientEndpoint();
-			this.qosParameters.remove(re);
-			this.subscriberList.remove(to_delete);
+			this.subscriberList.remove(re);
 		
 			if(this.subscriberList.isEmpty()){
 				relation.proactiveCancel();
@@ -149,6 +147,7 @@ public class ReverseProxyResource extends CoapResource {
 				scheduleFeasibles();
 			}
 		}
+		generalLock.unlock();
 	}
 
 	@Override
@@ -181,7 +180,7 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = pr.getResponseCode();
 			// create Observe request for the first client
 			if(res == null){
-				lockRelation.lock();
+				generalLock.lock();
 				if(relation == null){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
@@ -190,7 +189,7 @@ public class ReverseProxyResource extends CoapResource {
 					Response responseForClients = sendLast(request, pr);
 					exchange.respond(responseForClients);
 				}
-				lockRelation.unlock();
+				generalLock.unlock();
 			}else if(res == ResponseCode.CONTENT){
 				Response responseForClients = sendLast(request, pr);
 				exchange.respond(responseForClients);
@@ -255,9 +254,6 @@ public class ReverseProxyResource extends CoapResource {
 		responseForClients.setDestinationPort(request.getSourcePort());
 		responseForClients.setToken(request.getToken());
 		responseForClients.getOptions().setObserve(this.lastNotificationMessage.getOptions().getObserve());
-		RemoteEndpoint remoteEndpoint = getActualRemote(request.getSource(), request.getSourcePort());
-		QoSParameters params = qosParameters.get(remoteEndpoint);
-		responseForClients.getOptions().setMaxAge(params.getPmax() / 1000);
 		return responseForClients;
 	}
 
@@ -382,6 +378,16 @@ public class ReverseProxyResource extends CoapResource {
 		}
 	}
 
+	public boolean isValidSubscriberEmpty() {
+		generalLock.lock();
+		Collection<PeriodicRequest> tmp = this.subscriberList.values();
+		generalLock.unlock();
+		for(PeriodicRequest pr : tmp){
+			if(pr.isAllowed()) return false;
+		}
+		return true;
+	}
+	
 	/**
 	 * Checks if the Observing relationship can be added.
 	 * 
@@ -390,47 +396,43 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private PeriodicRequest handleGETCoRE(CoapExchange exchange) {
 		Request request = exchange.advanced().getCurrentRequest();
-		QoSParameters params = null;
+		PeriodicRequest pr = null;
+		generalLock.lock();
 		RemoteEndpoint remoteEndpoint = getActualRemote(request.getSource(), request.getSourcePort());
 		if(remoteEndpoint == null){
 			remoteEndpoint = new RemoteEndpoint(request.getSourcePort(), request.getSource(), networkConfig);
-			params = new QoSParameters(-1, -1, false);
-		} else
-			params = qosParameters.get(remoteEndpoint);
+			pr = new PeriodicRequest();
+		} else{
+			pr = this.subscriberList.get(remoteEndpoint);
+		}
 		
 		// Both parameters have been set
-		if(params.getPmin() != -1 && params.getPmax() != -1){
-			if(params.isAllowed()){
+		if(pr.getPmin() != -1 && pr.getPmax() != -1){
+			if(pr.isAllowed()){
 				// Already computed
-				PeriodicRequest pr = new PeriodicRequest(ResponseCode.CONTENT);
-				pr.setAllowed(true);
-				pr.setPmax(params.getPmax());
-				pr.setPmin(params.getPmin());
 				pr.setClientEndpoint(remoteEndpoint);
 				pr.setCommittedPeriod(this.notificationPeriodMax);
 				pr.setExchange(exchange);
 				pr.setToken(request.getToken());
-				this.subscriberList.add(pr);
+				this.subscriberList.put(remoteEndpoint, pr);
+				generalLock.unlock();
 				return pr;
 			}
 			// Try scheduling
-			else if(scheduleNewRequest(params)){
-				
+			else if(scheduleNewRequest(pr)){
 				// Observe can be set
-				PeriodicRequest pr = new PeriodicRequest(null);
-				pr.setAllowed(true);
-				pr.setPmax(params.getPmax());
-				pr.setPmin(params.getPmin());
 				pr.setClientEndpoint(remoteEndpoint);
 				pr.setCommittedPeriod(this.notificationPeriodMax);
 				pr.setExchange(exchange);
 				pr.setToken(request.getToken());
-				this.subscriberList.add(pr);
+				this.subscriberList.put(remoteEndpoint, pr);
+				generalLock.unlock();
 				return pr;
 				
 			} else{
 				// Scheduling is not feasible
-				qosParameters.remove(remoteEndpoint);
+				this.subscriberList.remove(remoteEndpoint);
+				generalLock.unlock();
 				return new PeriodicRequest(ResponseCode.NOT_ACCEPTABLE);
 			}
 		}
@@ -439,7 +441,8 @@ public class ReverseProxyResource extends CoapResource {
 			/* TODO Decide what to do in the case of an observing relationship where the client didn't set any parameter
 			 * Now we stop it and reply with an error.
 			 */
-			qosParameters.remove(remoteEndpoint);
+			this.subscriberList.remove(remoteEndpoint);
+			generalLock.unlock();
 			return new PeriodicRequest(ResponseCode.FORBIDDEN);
 		}
 	}
@@ -454,13 +457,14 @@ public class ReverseProxyResource extends CoapResource {
 	private ResponseCode handlePUTCoRE(CoapExchange exchange) {
 		Request request = exchange.advanced().getCurrentRequest();
 		List<String> queries = request.getOptions().getUriQuery();
-		QoSParameters params = null;
+		PeriodicRequest pr = null;
+		generalLock.lock();
 		RemoteEndpoint remoteEndpoint = getActualRemote(request.getSource(), request.getSourcePort());
 		if(remoteEndpoint == null){
 			remoteEndpoint = new RemoteEndpoint(request.getSourcePort(), request.getSource(), networkConfig);
-			params = new QoSParameters(-1, -1, false);
+			pr = new PeriodicRequest();
 		} else
-			params = qosParameters.get(remoteEndpoint);
+			pr = this.subscriberList.get(remoteEndpoint);
 		int pmin = -1;
 		int pmax = -1;
 		for(String composedquery : queries){
@@ -494,12 +498,14 @@ public class ReverseProxyResource extends CoapResource {
 			return ResponseCode.BAD_REQUEST;
 		// Minimum and Maximum period has been set
 		if(pmin != -1 && pmax != -1){
-			params.setAllowed(false);
-			params.setPmax(pmax);
-			params.setPmin(pmin);
-			qosParameters.put(remoteEndpoint, params);
+			pr.setAllowed(false);
+			pr.setPmax(pmax);
+			pr.setPmin(pmin);
+			this.subscriberList.put(remoteEndpoint, pr);
+			generalLock.unlock();
 			return ResponseCode.CHANGED;
 		}
+		generalLock.unlock();
 		return null;
 		
 	}
@@ -548,13 +554,14 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the RemoteEndpoint associated to the client
 	 */
 	private RemoteEndpoint getActualRemote(InetAddress address, int port) {
-		/**FIXME Client may change the sending port between two requests, so we can use only the IP address to store clients.
-		 *  However in this way we cannot have more remote clients running on the same network interface. */
-		for(RemoteEndpoint re : qosParameters.keySet()){
+		generalLock.lock();
+		for(RemoteEndpoint re : this.subscriberList.keySet()){
 			if(re.getRemoteAddress().equals(address) && re.getRemotePort() == port){
+				generalLock.unlock();
 				return re;
 			}
 		}
+		generalLock.unlock();
 		return null;
 	}
 
@@ -569,12 +576,13 @@ public class ReverseProxyResource extends CoapResource {
 			ScheduleResults ret = schedule();
 			end = ret.isValid();
 			if(!end){
-				PeriodicRequest client = minPmaxClient(getSubscriberList());
+				generalLock.lock();
+				PeriodicRequest client = minPmaxClient(this.subscriberList.values());
 				if(client != null){
 					LOGGER.info("Remove client:" + client.toString());
 					deleteSubscriptionFromProxy(client);
 				}
-				
+				generalLock.unlock();
 			}
 			else{
 				boolean periodChanged = updatePeriods(ret);
@@ -612,20 +620,21 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private void deleteSubscriptionFromProxy(PeriodicRequest client) {
 		// TODO delete subscription with client with an RST Message
-		qosParameters.remove(client.getClientEndpoint());
-		subscriberList.remove(client);
+		generalLock.lock();
+		subscriberList.remove(client.getClientEndpoint());
+		generalLock.unlock();
 	}
 
 	/**
 	 * Retrieve the client with the minimum pmax.
 	 * 
-	 * @param subscriberList the list of subscribers
+	 * @param collection the list of subscribers
 	 * @return the PeriodicRequest with the minimum pmax.
 	 */
-	private PeriodicRequest minPmaxClient(List<PeriodicRequest> subscriberList) {
+	private PeriodicRequest minPmaxClient(Collection<PeriodicRequest> collection) {
 		long minPmax = Integer.MAX_VALUE;
 		PeriodicRequest ret = null;
-		for(PeriodicRequest pr : subscriberList){
+		for(PeriodicRequest pr : collection){
 			if(pr.getPmax() < minPmax){
 				minPmax = pr.getPmax();
 				ret = pr;
@@ -661,13 +670,17 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private synchronized ScheduleResults schedule(){
+	private ScheduleResults schedule(){
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
-		if(qosParameters.size() == 0) return new ScheduleResults(0, Integer.MAX_VALUE, rtt, true);
+		generalLock.lock();
+		if(this.subscriberList.size() == 0){
+			generalLock.unlock();
+			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, true);
+		}
 		List<Task> tasks = new ArrayList<Task>();
-		for(RemoteEndpoint re : qosParameters.keySet()){
-			tasks.add(new Task(re, qosParameters.get(re)));
+		for(RemoteEndpoint re : this.subscriberList.keySet()){
+			tasks.add(new Task(re, this.subscriberList.get(re)));
 		}
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
@@ -677,14 +690,14 @@ public class ReverseProxyResource extends CoapResource {
 		
 		if(periodMax > rtt){
 			for(Task t : tasks){
-				if(qosParameters.containsKey(t.getClient())){
-					QoSParameters p = qosParameters.get(t.getClient());
-					p.setAllowed(true);
-					qosParameters.put(t.getClient(), p);
+				if(this.subscriberList.containsKey(t.getClient())){
+					this.subscriberList.get(t.getClient()).setAllowed(true);
 				}
 			}
+			generalLock.unlock();
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
+		generalLock.unlock();
 		return new ScheduleResults(periodMin, periodMax, rtt, false);
 	}
 	
@@ -811,10 +824,10 @@ public class ReverseProxyResource extends CoapResource {
 
 		@Override
 		public void run() {
-			while(relation != null){
+			while(!isValidSubscriberEmpty()){
 				long delay = notificationPeriodMin;
 				if(getLastNotificationMessage() != null){
-					List<PeriodicRequest> tmp = getSubscriberList();
+					Collection<PeriodicRequest> tmp = getSubscriberList().values();
 					for(PeriodicRequest pr : tmp){
 						if(pr.isAllowed()){
 							
@@ -905,7 +918,7 @@ public class ReverseProxyResource extends CoapResource {
 		 
 	    @Override
 	    public void run() {
-	    	while(relation != null){
+	    	while(!isValidSubscriberEmpty()){
 	    		LOGGER.info("RttTask");
 	    		updateRTT(evaluateRtt());
 	    		try {

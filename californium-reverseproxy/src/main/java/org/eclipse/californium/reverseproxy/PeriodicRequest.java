@@ -18,7 +18,12 @@ public class PeriodicRequest extends QoSParameters{
 	private byte[] token;
 	
 	public PeriodicRequest(ResponseCode code) {
+		super();
 		responseCode = code;
+		lastTimestampNotificationSent = -1;
+	}
+	public PeriodicRequest() {
+		super();
 		lastTimestampNotificationSent = -1;
 	}
 	public long getCommittedPeriod() {

@@ -1,11 +1,9 @@
 package org.eclipse.californium.reverseproxy.resources;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
-
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.OptionSet;
-import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
 
@@ -24,7 +22,7 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		Response response = coapResponse.advanced();
 		ownerResource.getNotificationOrderer().getNextObserveNumber();
 		if(ownerResource.getLastNotificationMessage() == null){
-			List<PeriodicRequest> tmp = ownerResource.getSubscriberList();
+			Collection<PeriodicRequest> tmp = ownerResource.getSubscriberList().values();
 			for(PeriodicRequest pr : tmp){
 				if(pr.isAllowed()){
 					pr.setLastNotificationSent(response);
