@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -72,7 +73,7 @@ public class ReverseProxyResource extends CoapResource {
 
 	private RttTask rttTask;
 
-	private boolean observeEnabled = false;
+	private AtomicBoolean observeEnabled;
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
@@ -112,7 +113,8 @@ public class ReverseProxyResource extends CoapResource {
 		this.reverseProxy = reverseProxy;
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
-		rttTask = new RttTask();	
+		rttTask = new RttTask();
+		observeEnabled = new AtomicBoolean(false);
 	}
 	
 	@Override
@@ -199,14 +201,13 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = pr.getResponseCode();
 			if(res == ResponseCode.CONTENT){
 				// create Observe request for the first client
-				if(!observeEnabled){
-					observeEnabled = true;
+				if(observeEnabled.compareAndSet(false, true)){
 					relation = client.observeAndWait(new ReverseProxyCoAPHandler(this));
 					lock.lock();
 					newNotification.signalAll();
 					lock.unlock();
 					notificationExecutor.submit(notificationTask);
-					rttExecutor.submit(rttTask);
+					//rttExecutor.submit(rttTask);
 				}
 				//reply to client
 				Response responseForClients = getLast(request, pr);
@@ -296,7 +297,7 @@ public class ReverseProxyResource extends CoapResource {
 		
 			if(getSubscriberList().isEmpty()){
 				relation.proactiveCancel();
-				observeEnabled = false;
+				observeEnabled.set(false);
 			} else{
 				scheduleFeasibles();
 			}
@@ -796,9 +797,9 @@ public class ReverseProxyResource extends CoapResource {
 
 		@Override
 		public void run() {
-			while(observeEnabled){
+			while(observeEnabled.get()){
 				long delay = notificationPeriodMin;
-				if(relation.getCurrent() != null){
+				if(relation == null || relation.getCurrent() != null){
 					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberList();
 					for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
 						PeriodicRequest pr = entry.getValue();
@@ -894,7 +895,7 @@ public class ReverseProxyResource extends CoapResource {
 		 
 	    @Override
 	    public void run() {
-	    	while(observeEnabled){
+	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
 	    		updateRTT(evaluateRtt());
 	    		try {
