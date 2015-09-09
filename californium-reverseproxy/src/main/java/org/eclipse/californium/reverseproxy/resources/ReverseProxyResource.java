@@ -106,7 +106,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	@Override
 	public void handleRequest(final Exchange exchange) {
-		LOGGER.info("handleRequest");
+		LOGGER.entering(getClass().getName(), "handleRequest", exchange);
 		//exchange.sendAccept();
 		Code code = exchange.getRequest().getCode();
 		switch (code) {
