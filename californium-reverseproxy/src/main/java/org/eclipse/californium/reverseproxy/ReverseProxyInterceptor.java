@@ -52,7 +52,7 @@ public class ReverseProxyInterceptor implements MessageInterceptor{
 
 	@Override
 	public void receiveEmptyMessage(EmptyMessage message) {
-		LOGGER.info("ReceiveEmptyMessage");
+		//LOGGER.info("ReceiveEmptyMessage");
 		RemoteEndpoint client = message.getRemoteEndpoint();
 		long rtt = 0;
 		if(client != null)
@@ -61,7 +61,7 @@ public class ReverseProxyInterceptor implements MessageInterceptor{
 			rtt = message.getRtt();
 		InetAddress ip = message.getSource();
 		int port = message.getSourcePort();
-		LOGGER.info("from " + ip +":"+port+" rtt= "+ rtt);
+		//LOGGER.info("from " + ip +":"+port+" rtt= "+ rtt);
 		this.ownerProxy.addClientRTT(ip, port, rtt);
 		
 	}
