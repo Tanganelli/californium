@@ -220,7 +220,7 @@ public class ReverseProxyResource extends CoapResource {
 		}else if((request.getOptions().getObserve() != null && request.getOptions().getObserve() == 1)){
 			//Cancel Observe Request
 			Response responseForClients;
-			if(relation.getCurrent() == null){
+			if(relation == null || relation.getCurrent() == null){
 				responseForClients = new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 			} else {
 				responseForClients = relation.getCurrent().advanced();
@@ -241,7 +241,6 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	private Response getLast(Request request, PeriodicRequest pr) {
-		Object[] params = {request, pr};
 		LOGGER.log(Level.INFO, "getLast(" + request + ", " + pr + ")");
 		lock.lock();
 		try {
@@ -253,10 +252,7 @@ public class ReverseProxyResource extends CoapResource {
 			lock.unlock();
 		}
 		Response notification = relation.getCurrent().advanced();
-		pr.setLastNotificationSent(notification);
-		Date now = new Date();
-		long timestamp = now.getTime();
-		pr.setTimestampLastNotificationSent(timestamp);
+		
 		// accept without create a new observing relationship
 		Response responseForClients = new Response(notification.getCode());
 		// copy payload
@@ -269,6 +265,12 @@ public class ReverseProxyResource extends CoapResource {
 		responseForClients.setDestinationPort(request.getSourcePort());
 		responseForClients.setToken(request.getToken());
 		responseForClients.getOptions().setObserve(notification.getOptions().getObserve());
+		
+		//save lastNotification for the client
+		pr.setLastNotificationSent(notification);
+		Date now = new Date();
+		long timestamp = now.getTime();
+		pr.setTimestampLastNotificationSent(timestamp);
 		return responseForClients;
 	}
 	
@@ -474,7 +476,6 @@ public class ReverseProxyResource extends CoapResource {
 		
 	}
 	private synchronized void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
-		Object[] params = {clientEndpoint, pr};
 		LOGGER.log(Level.INFO, "addSubscriber(" + clientEndpoint+ ", "+ pr +")");
 		this.subscriberList.put(clientEndpoint, pr);
 	}
@@ -861,12 +862,11 @@ public class ReverseProxyResource extends CoapResource {
 		 * @param timestamp the timestamp
 		 */
 		private void sendValidated(ClientEndpoint cl, PeriodicRequest pr, long timestamp) {
-			Object[] params = {cl, pr, timestamp};
-			LOGGER.log(Level.INFO, "sendValidated", params);
+			LOGGER.log(Level.INFO, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
 			long timestampResponse = relation.getCurrent().advanced().getTimestamp();
 			long maxAge = relation.getCurrent().advanced().getOptions().getMaxAge() * 1000; //convert to milliseconds
 			if(timestampResponse + maxAge > timestamp){
-				LOGGER.info("sendValidated");
+				LOGGER.info("sendValidated to be sent");
 				pr.setTimestampLastNotificationSent(timestamp);
 				pr.setLastNotificationSent(relation.getCurrent().advanced());
 				Response responseForClients = new Response(relation.getCurrent().advanced().getCode());
