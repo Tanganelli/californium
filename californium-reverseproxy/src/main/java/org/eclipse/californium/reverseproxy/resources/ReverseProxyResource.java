@@ -76,9 +76,6 @@ public class ReverseProxyResource extends CoapResource {
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
-		for (Handler h : LOGGER.getHandlers()) {
-		    h.setLevel(Level.ALL);
-		}
 		this.uri = uri;
 		this.rtt = -1;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
