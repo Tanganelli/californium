@@ -79,7 +79,9 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.setLevel(Level.ALL);
 		System.out.println(LOGGER.getHandlers());
 		for(Handler h : LOGGER.getHandlers()){
-			System.out.println(h.getClass() + " - "+ h.getLevel());
+			System.out.println(h.getClass() + " - "+ h.getLevel().getLocalizedName());
+			h.setLevel(Level.ALL);
+			System.out.println(h.getClass() + " - "+ h.getLevel().getLocalizedName());
 		}
 		LOGGER.info("INFO");
 		LOGGER.fine("FINE");
