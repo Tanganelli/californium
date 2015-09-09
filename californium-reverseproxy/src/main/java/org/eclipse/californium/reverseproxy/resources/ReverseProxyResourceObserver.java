@@ -2,6 +2,7 @@ package org.eclipse.californium.reverseproxy.resources;
 
 import java.util.Map;
 
+import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.observe.ObserveRelation;
@@ -52,16 +53,9 @@ public class ReverseProxyResourceObserver implements ResourceObserver{
 
 	@Override
 	public void removedObserveRelation(ObserveRelation relation) {
-		Map<RemoteEndpoint, PeriodicRequest> tmp = ownerResource.getSubscriberList();
-		PeriodicRequest to_delete = null;
-		Exchange exchange = relation.getExchange();
-		for(PeriodicRequest pr : tmp.values()){
-			if(pr.getExchange().advanced().equals(exchange)){
-				to_delete = pr;
-				break;
-			}
-		}
-		ownerResource.deleteSubscriptionsFromClients(to_delete);
+		Request req = relation.getExchange().getRequest();
+		ClientEndpoint clientEndpoint = new ClientEndpoint(req.getSource(), req.getSourcePort());
+		ownerResource.deleteSubscriptionsFromClients(clientEndpoint);
 	}
 
 }

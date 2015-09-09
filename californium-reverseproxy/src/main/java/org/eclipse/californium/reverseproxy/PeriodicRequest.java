@@ -1,8 +1,8 @@
 package org.eclipse.californium.reverseproxy;
 
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
+import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
-import org.eclipse.californium.core.network.RemoteEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 
 /**
@@ -11,11 +11,10 @@ import org.eclipse.californium.core.server.resources.CoapExchange;
 public class PeriodicRequest extends QoSParameters{
 	private long committedPeriod; //period in milliseconds
 	private long lastTimestampNotificationSent;
-	private RemoteEndpoint clientEndpoint;
 	private CoapExchange exchange;
 	private ResponseCode responseCode;
+	private Request originRequest;
 	private Response lastNotificationSent;
-	private byte[] token;
 	
 	public PeriodicRequest(ResponseCode code) {
 		super();
@@ -31,12 +30,6 @@ public class PeriodicRequest extends QoSParameters{
 	}
 	public void setCommittedPeriod(long notificationPeriodMin) {
 		this.committedPeriod = notificationPeriodMin;
-	}
-	public RemoteEndpoint getClientEndpoint() {
-		return clientEndpoint;
-	}
-	public void setClientEndpoint(RemoteEndpoint clientEndpoint) {
-		this.clientEndpoint = clientEndpoint;
 	}
 	public CoapExchange getExchange() {
 		return exchange;
@@ -56,21 +49,17 @@ public class PeriodicRequest extends QoSParameters{
 	public void setResponseCode(ResponseCode responseCode) {
 		this.responseCode = responseCode;
 	}
-	
-	public String toString(){
-		return clientEndpoint.getRemoteAddress() + ":" + clientEndpoint.getRemotePort() + " pmin=" + this.getPmin() + ", pmax=" + this.getPmax(); 
-	}
 	public Response getLastNotificationSent() {
 		return lastNotificationSent;
 	}
 	public void setLastNotificationSent(Response lastNotificationSent) {
 		this.lastNotificationSent = lastNotificationSent;
 	}
-	public byte[] getToken() {
-		return token;
+	public Request getOriginRequest() {
+		return originRequest;
 	}
-	public void setToken(byte[] token) {
-		this.token = token;
+	public void setOriginRequest(Request originRequest) {
+		this.originRequest = originRequest;
 	}
 
 }

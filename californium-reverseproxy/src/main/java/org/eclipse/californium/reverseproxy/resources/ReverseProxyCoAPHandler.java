@@ -58,8 +58,7 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());*/
 		Date now = new Date();
 		long timestamp = now.getTime();
-		response.setTimestamp(timestamp);
-		ownerResource.setLastNotificationMessage(response);
+		ownerResource.setTimestamp(timestamp);
 		ownerResource.lock.lock();
 		ownerResource.newNotification.signalAll();
 		ownerResource.lock.unlock();
