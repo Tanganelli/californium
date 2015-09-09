@@ -41,7 +41,7 @@ import org.eclipse.californium.reverseproxy.ReverseProxy;
 public class ReverseProxyResource extends CoapResource {
 	
 	/** The logger. */
-	protected final static Logger LOGGER = Logger.getLogger(CoapResource.class.getCanonicalName());
+	protected final static Logger LOGGER = Logger.getLogger(ReverseProxyResource.class.getCanonicalName());
 
 	/** The factor that multiplied for the actual RTT 
 	 * is used as the timeout for waiting replies from the end device.*/
@@ -75,7 +75,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
-		
+		LOGGER.setLevel(Level.ALL);
 		this.uri = uri;
 		this.rtt = -1;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
@@ -102,12 +102,11 @@ public class ReverseProxyResource extends CoapResource {
 		lock = new ReentrantLock();
 		newNotification = lock.newCondition();
 		rttTask = new RttTask();	
-		
-		LOGGER.setLevel(Level.ALL);
 	}
 	
 	@Override
 	public void handleRequest(final Exchange exchange) {
+		LOGGER.info("handleRequest");
 		//exchange.sendAccept();
 		Code code = exchange.getRequest().getCode();
 		switch (code) {
