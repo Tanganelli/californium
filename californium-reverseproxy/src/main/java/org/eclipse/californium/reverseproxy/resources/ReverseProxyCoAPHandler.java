@@ -22,7 +22,9 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		Response response = coapResponse.advanced();
 		ownerResource.getNotificationOrderer().getNextObserveNumber();
 		if(ownerResource.getLastNotificationMessage() == null){
+			ownerResource.generalLock.lock();
 			Collection<PeriodicRequest> tmp = ownerResource.getSubscriberList().values();
+			ownerResource.generalLock.unlock();
 			for(PeriodicRequest pr : tmp){
 				if(pr.isAllowed()){
 					pr.setLastNotificationSent(response);
