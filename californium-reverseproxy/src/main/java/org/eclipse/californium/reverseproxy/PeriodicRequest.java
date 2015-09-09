@@ -61,5 +61,9 @@ public class PeriodicRequest extends QoSParameters{
 	public void setOriginRequest(Request originRequest) {
 		this.originRequest = originRequest;
 	}
+	
+	public String toString(){
+		return originRequest.getSource().getHostAddress() + ":" + String.valueOf(originRequest.getSourcePort()) + " - ("+super.toString()+")";
+	}
 
 }

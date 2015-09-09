@@ -39,4 +39,7 @@ public class QoSParameters{
 	public void setAllowed(boolean allowed) {
 		this.allowed = allowed;
 	}
+	public String toString(){
+		return String.valueOf(allowed)+", "+String.valueOf(pmin)+" - "+String.valueOf(pmax);
+	}
 }
