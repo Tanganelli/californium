@@ -202,10 +202,7 @@ public class ReverseProxyResource extends CoapResource {
 			if(res == ResponseCode.CONTENT){
 				// create Observe request for the first client
 				if(observeEnabled.compareAndSet(false, true)){
-					relation = client.observeAndWait(new ReverseProxyCoAPHandler(this));
-					lock.lock();
-					newNotification.signalAll();
-					lock.unlock();
+					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					notificationExecutor.submit(notificationTask);
 					//rttExecutor.submit(rttTask);
 				}
