@@ -869,6 +869,7 @@ public class ReverseProxyResource extends CoapResource {
 				LOGGER.info("sendValidated to be sent");
 				pr.setTimestampLastNotificationSent(timestamp);
 				pr.setLastNotificationSent(relation.getCurrent().advanced());
+				addSubscriber(cl, pr);
 				Response responseForClients = new Response(relation.getCurrent().advanced().getCode());
 				// copy payload
 				byte[] payload = relation.getCurrent().advanced().getPayload();
