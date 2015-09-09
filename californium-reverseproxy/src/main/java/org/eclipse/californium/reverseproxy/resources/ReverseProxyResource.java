@@ -15,6 +15,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,7 +76,9 @@ public class ReverseProxyResource extends CoapResource {
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
-		LOGGER.setLevel(Level.ALL);
+		for (Handler h : LOGGER.getHandlers()) {
+		    h.setLevel(Level.ALL);
+		}
 		this.uri = uri;
 		this.rtt = -1;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
