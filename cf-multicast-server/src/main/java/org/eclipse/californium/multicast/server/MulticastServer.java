@@ -122,6 +122,8 @@ public class MulticastServer extends CoapServer{
     	private int notificationPeriod = 5; // 5 seconds as default
     	private int maxAge = 5; // 5 seconds as default
     	private DynamicTimeTask task;
+    	private Lock lock;
+    	private Condition newPeriod;
         public CoREInterfaceResource() {
             
             // set resource identifier
@@ -133,7 +135,8 @@ public class MulticastServer extends CoapServer{
     		getAttributes().setObservable();
     		setObserveType(Type.CON);
     		task = null;
-    		
+    		lock = new ReentrantLock();
+    		newPeriod = lock.newCondition();
         }
         private class DynamicTimeTask extends Thread {
 
@@ -152,11 +155,14 @@ public class MulticastServer extends CoapServer{
 	    			// Call changed to notify subscribers
 	    			changed();
 	    			LOGGER.info("Send Notification");
+	    			lock.lock();
 	    			try {
-	    				Thread.sleep(notificationPeriod * 1000);
+	    				newPeriod.await(notificationPeriod, TimeUnit.SECONDS);
 					} catch (InterruptedException e) {
 						LOGGER.info("Stop Thread");
-					} 
+					} finally {
+						lock.unlock();
+					}
     			}
     		}
     	}
@@ -223,18 +229,9 @@ public class MulticastServer extends CoapServer{
         		System.out.println("Max Period = " + max_period);
         		System.out.println("Min Period = " + min_period);
 
-        		if(task != null){
-        			task.exit = true;
-	        		task.interrupt();
-	        		try {
-						task.join();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-        		}
-        		task = new DynamicTimeTask();
-        		task.start();
+        		lock.lock();
+        		newPeriod.signal();
+        		lock.unlock();
         	}
         	exchange.respond(CHANGED);
         }
