@@ -53,7 +53,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	}
 	@Override
 	public void onLoad(CoapResponse response) {
-		LOGGER.info(response.advanced().toString());
+		//LOGGER.info(response.advanced().toString());
 		Date now = new Date();
 		long timestamp = now.getTime();
 		notificationsCount++;
@@ -76,6 +76,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		if(response.getOptions().getObserve() == null){
 			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce without OBSERVE");
 			System.out.println(getNow() + "INFO - Received Responce without OBSERVE");
+			notificationsCount = stopCount;
 
 		}
 		
