@@ -206,7 +206,7 @@ public class ReverseProxyResource extends CoapResource {
 					Response responseForClients = getLast(request, pr);
 					exchange.respond(responseForClients);
 					notificationExecutor.submit(notificationTask);
-					//rttExecutor.submit(rttTask);
+					rttExecutor.submit(rttTask);
 				}else{
 					//reply to client
 					Response responseForClients = getLast(request, pr);
@@ -298,8 +298,12 @@ public class ReverseProxyResource extends CoapResource {
 			removeSubscriber(clientEndpoint);
 		
 			if(getSubscriberList().isEmpty()){
-				relation.proactiveCancel();
+				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
+				lock.lock();
+				newNotification.signalAll();
+				lock.unlock();
+				relation.proactiveCancel();
 			} else{
 				scheduleFeasibles();
 			}
