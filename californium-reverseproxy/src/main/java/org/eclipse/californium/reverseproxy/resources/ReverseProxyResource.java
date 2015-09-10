@@ -206,7 +206,7 @@ public class ReverseProxyResource extends CoapResource {
 					Response responseForClients = getLast(request, pr);
 					exchange.respond(responseForClients);
 					notificationExecutor.submit(notificationTask);
-					rttExecutor.submit(rttTask);
+					//rttExecutor.submit(rttTask);
 				}else{
 					//reply to client
 					Response responseForClients = getLast(request, pr);
