@@ -48,7 +48,7 @@ public class ReverseProxyResource extends CoapResource {
 
 	/** The factor that multiplied for the actual RTT 
 	 * is used as the timeout for waiting replies from the end device.*/
-	private static final long WAIT_FACTOR = 10;
+	private static long WAIT_FACTOR = 10;
 
 	private static final long PERIOD_RTT = 10000; // 10 sec
 
@@ -531,22 +531,26 @@ public class ReverseProxyResource extends CoapResource {
 		request.send();
 		LOGGER.info("setObservingQos - " + request);
 		Response response;
+		long timeout = WAIT_FACTOR;
 		try {
-			if(rtt == -1){
-				response = request.waitForResponse(5000);
-			} else
-			{
-				response = request.waitForResponse(rtt * WAIT_FACTOR);
-			}
-			// receive the response
-
-			if (response != null) {
-				LOGGER.finer("Coap response received.");
-				// get RTO from the response
-				this.rtt = response.getRemoteEndpoint().getCurrentRTO();
-				
-			} else {
-				LOGGER.warning("No response received.");
+			while(timeout < 5*WAIT_FACTOR){
+				if(rtt == -1){
+					response = request.waitForResponse(5000 * timeout);
+				} else
+				{
+					response = request.waitForResponse(rtt * timeout);
+				}
+				// receive the response
+	
+				if (response != null) {
+					LOGGER.finer("Coap response received.");
+					// get RTO from the response
+					this.rtt = response.getRemoteEndpoint().getCurrentRTO();
+					break;
+				} else {
+					LOGGER.warning("No response received.");
+					timeout += WAIT_FACTOR;
+				}
 			}
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
@@ -687,18 +691,22 @@ public class ReverseProxyResource extends CoapResource {
 		Request request = new Request(Code.GET, Type.CON);
 		request.setURI(this.uri);
 		request.send(this.getEndpoints().get(0));
-		long rtt = 0;
+		long rtt = this.rtt;
+		long timeout = WAIT_FACTOR;
 		try {
-			// receive the response (wait for 1 second * WAIT_FACTOR)
-			Response receivedResponse = request.waitForResponse(1000 * WAIT_FACTOR);
-
-			if (receivedResponse != null) {
-				LOGGER.finer("Coap response received.");
-				// get RTO from the response
-				 rtt = receivedResponse.getRemoteEndpoint().getCurrentRTO();
-				
-			} else {
-				LOGGER.warning("No response received.");
+			while(timeout < 5*WAIT_FACTOR){
+				// receive the response (wait for 1 second * WAIT_FACTOR)
+				Response receivedResponse = request.waitForResponse(1000 * timeout);
+	
+				if (receivedResponse != null) {
+					LOGGER.finer("Coap response received.");
+					// get RTO from the response
+					 rtt = receivedResponse.getRemoteEndpoint().getCurrentRTO();
+					break;
+				} else {
+					LOGGER.warning("No response received.");
+					timeout += WAIT_FACTOR;
+				}
 			}
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
