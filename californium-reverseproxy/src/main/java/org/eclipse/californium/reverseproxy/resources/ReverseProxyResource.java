@@ -777,15 +777,20 @@ public class ReverseProxyResource extends CoapResource {
 		request.send(this.getEndpoints().get(0));
 		long rtt = this.rtt;
 		long timeout = WAIT_FACTOR;
+		Response response;
 		try {
 			while(timeout < 5*WAIT_FACTOR){
-				// receive the response (wait for 1 second * WAIT_FACTOR)
-				Response receivedResponse = request.waitForResponse(1000 * timeout);
+				if(rtt == -1){
+					response = request.waitForResponse(5000 * timeout);
+				} else
+				{
+					response = request.waitForResponse(rtt * timeout);
+				}
 	
-				if (receivedResponse != null) {
+				if (response != null) {
 					LOGGER.finer("Coap response received.");
 					// get RTO from the response
-					 rtt = receivedResponse.getRemoteEndpoint().getCurrentRTO();
+					 rtt = response.getRemoteEndpoint().getCurrentRTO();
 					break;
 				} else {
 					LOGGER.warning("No response received.");
