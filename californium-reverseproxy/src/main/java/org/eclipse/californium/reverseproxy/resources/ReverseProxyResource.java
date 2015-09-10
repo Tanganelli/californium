@@ -122,7 +122,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	@Override
 	public void handleRequest(final Exchange exchange) {
-		LOGGER.log(Level.INFO, "handleRequest(" + exchange + ")");
+		LOGGER.log(Level.FINER, "handleRequest(" + exchange + ")");
 		//exchange.sendAccept();
 		Code code = exchange.getRequest().getCode();
 		switch (code) {
@@ -163,7 +163,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param exchange the CoapExchange for the simple API
 	 */
 	public void handlePUT(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "handlePUT(" + exchange + ")");
+		LOGGER.log(Level.FINER, "handlePUT(" + exchange + ")");
 		Request request = exchange.advanced().getRequest();
 		List<String> queries = request.getOptions().getUriQuery();
 		if(!queries.isEmpty()){
@@ -194,7 +194,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param exchange the CoapExchange for the simple API
 	 */
 	public void handleGET(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "handleGET(" + exchange + ")");
+		LOGGER.log(Level.FINER, "handleGET(" + exchange + ")");
 		Request request = exchange.advanced().getRequest();
 		if(request.getOptions().getObserve() != null && request.getOptions().getObserve() == 0)
 		{
@@ -276,7 +276,7 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	public void setTimestamp(long timestamp) {
-		LOGGER.log(Level.INFO, "setTimestamp(" + timestamp + ")");
+		LOGGER.log(Level.FINER, "setTimestamp(" + timestamp + ")");
 		relation.getCurrent().advanced().setTimestamp(timestamp);
 	}
 	
@@ -300,7 +300,7 @@ public class ReverseProxyResource extends CoapResource {
 			removeSubscriber(clientEndpoint);
 		
 			if(getSubscriberList().isEmpty()){
-				LOGGER.log(Level.INFO, "SubscriberList Empty");
+				LOGGER.log(Level.FINER, "SubscriberList Empty");
 				observeEnabled.set(false);
 				lock.lock();
 				newNotification.signalAll();
@@ -376,7 +376,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param currentRTO the new RTT
 	 */
 	public void updateRTT(long currentRTO) {
-		LOGGER.log(Level.INFO, "updateRTO(" + currentRTO + ")");
+		LOGGER.log(Level.FINER, "updateRTO(" + currentRTO + ")");
 		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(currentRTO));
 		rtt = currentRTO;
 		if((currentRTO - THRESHOLD) > lastValidRtt){ //worse RTT
@@ -407,7 +407,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the PeriodicRequest representing the Periodic Observing relationship
 	 */
 	private PeriodicRequest handleGETCoRE(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "handleGETCoRE(" + exchange + ")");
+		LOGGER.log(Level.FINER, "handleGETCoRE(" + exchange + ")");
 		Request request = exchange.advanced().getCurrentRequest();
 		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
 		PeriodicRequest pr = getSubscriber(clientEndpoint);
@@ -447,7 +447,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the ResponseCode to used in the reply to the client
 	 */
 	private PeriodicRequest handlePUTCoRE(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "handlePUTCoRE(" + exchange + ")");
+		LOGGER.log(Level.FINER, "handlePUTCoRE(" + exchange + ")");
 		Request request = exchange.advanced().getCurrentRequest();
 		List<String> queries = request.getOptions().getUriQuery();
 		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
@@ -561,13 +561,13 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the Error ResponseCode or null if success.
 	 */
 	private void setObservingQoS() {
-		LOGGER.log(Level.INFO, "setObserving()");
+		LOGGER.log(Level.FINER, "setObserving()");
 		Request request = new Request(Code.PUT, Type.CON);
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		request.setURI(this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period);
 		request.send();
-		LOGGER.info("setObservingQos - " + request);
+		//LOGGER.info("setObservingQos - " + request);
 		Response response;
 		long timeout = WAIT_FACTOR;
 		try {
@@ -671,7 +671,7 @@ public class ReverseProxyResource extends CoapResource {
 //	}
 	
 	private boolean updatePeriods(ScheduleResults ret) {
-		LOGGER.log(Level.INFO, "updatePeriods(" + ret + ")");
+		LOGGER.log(Level.FINER, "updatePeriods(" + ret + ")");
 		int pmin = ret.getPmin();
 		int pmax = ret.getPmax();
 		this.lastValidRtt = ret.getLastRtt();
@@ -696,7 +696,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the PeriodicRequest with the minimum pmax.
 	 */
 	private ClientEndpoint minPmaxClient() {
-		LOGGER.log(Level.INFO, "minPmaxClient()");
+		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
 		ClientEndpoint ret = null;
 		Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberList();
@@ -737,7 +737,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return true if success, false otherwise.
 	 */
 	private synchronized ScheduleResults schedule(){
-		LOGGER.log(Level.INFO, "schedule()");
+		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
 		
@@ -959,11 +959,11 @@ public class ReverseProxyResource extends CoapResource {
 		 * @param timestamp the timestamp
 		 */
 		private void sendValidated(ClientEndpoint cl, PeriodicRequest pr, long timestamp) {
-			LOGGER.log(Level.INFO, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
+			LOGGER.log(Level.FINER, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
 			long timestampResponse = relation.getCurrent().advanced().getTimestamp();
 			long maxAge = relation.getCurrent().advanced().getOptions().getMaxAge() * 1000; //convert to milliseconds
 			if(timestampResponse + maxAge > timestamp){
-				LOGGER.info("sendValidated to be sent");
+				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
 				pr.setTimestampLastNotificationSent(timestamp);
 				pr.setLastNotificationSent(relation.getCurrent().advanced());
 				addSubscriber(cl, pr);
