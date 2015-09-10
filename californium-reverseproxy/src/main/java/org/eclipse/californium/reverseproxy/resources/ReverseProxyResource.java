@@ -33,6 +33,7 @@ import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.CoAP.Type;
 import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.observe.ObserveRelation;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.ResourceAttributes;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
@@ -217,20 +218,15 @@ public class ReverseProxyResource extends CoapResource {
 				exchange.respond(res);
 			}
 		}else if((request.getOptions().getObserve() != null && request.getOptions().getObserve() == 1)){
+			
 			//Cancel Observe Request
-			Response responseForClients;
+			Response responseForClients;			
 			if(relation == null || relation.getCurrent() == null){
 				responseForClients = new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 			} else {
-				responseForClients = relation.getCurrent().advanced();
-			}
-			// copy every option
-			responseForClients.setOptions(new OptionSet());
-			responseForClients.setDestination(request.getSource());
-			responseForClients.setDestinationPort(request.getSourcePort());
-			responseForClients.removeMID();
-			responseForClients.setToken(request.getToken());
-			responseForClients.getOptions().removeObserve();
+				responseForClients = getLast(request, getSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort())));
+				responseForClients.getOptions().removeObserve();
+			}			
 			exchange.respond(responseForClients);
 		} else{
 			// Normal GET
@@ -241,6 +237,9 @@ public class ReverseProxyResource extends CoapResource {
 	
 	private Response getLast(Request request, PeriodicRequest pr) {
 		LOGGER.log(Level.INFO, "getLast(" + request + ", " + pr + ")");
+		if(pr == null){
+			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
+		}
 		lock.lock();
 		try {
 			while(relation == null || relation.getCurrent() == null)
@@ -291,6 +290,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * Invoked by the Resource Observer handler when a client cancel an observe subscription.
 	 * 
 	 * @param clientEndpoint the Periodic Observing request that must be deleted
+	 * @param cancelledRelation 
 	 */
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
