@@ -56,6 +56,7 @@ public class ReverseProxyResource extends CoapResource {
 	
 	private final URI uri;
 	private final Map<ClientEndpoint, PeriodicRequest> subscriberList;
+	//private final Map<ClientEndpoint, PeriodicRequest> invalidSubscriberList;
 	private final Scheduler scheduler;
 	private final NotificationTask notificationTask;
     private final ScheduledExecutorService notificationExecutor;
@@ -92,6 +93,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.uri = uri;
 		this.rtt = -1;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
+		//invalidSubscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
 		
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
@@ -379,7 +381,23 @@ public class ReverseProxyResource extends CoapResource {
 		rtt = currentRTO;
 		if((currentRTO - THRESHOLD) > lastValidRtt){ //worse RTT
 			scheduleFeasibles();
-		}
+		} /*else if(!invalidSubscriverEmpty()){ // better RTT and pending requests
+			Map<ClientEndpoint, PeriodicRequest> tmpInvalid = getInvalidSubscriberList();
+			Map<ClientEndpoint, PeriodicRequest> tmpSubscriber = getSubscriberList();
+			boolean changed = false;
+			for(Entry<ClientEndpoint, PeriodicRequest> entry : tmpInvalid.entrySet()){
+				if(!tmpSubscriber.containsKey(entry.getKey())){ //not in subscriber
+					if(entry.getValue().getPmax() < rtt){
+						addSubscriber(entry.getKey(), entry.getValue());
+						removeInvalidSubscriber(entry.getKey());
+						changed = true;
+					}
+				} else {
+					removeInvalidSubscriber(entry.getKey());
+				}
+			}
+			if(changed) scheduleFeasibles();
+		}*/
 	}
 
 	/**
@@ -571,7 +589,7 @@ public class ReverseProxyResource extends CoapResource {
 				ClientEndpoint client = minPmaxClient();
 				if(client != null){
 					LOGGER.info("Remove client:" + client.toString());
-					removeSubscriber(client);
+					deleteSubscriptionFromProxy(client);
 				}
 				else
 					end = true;
@@ -586,6 +604,52 @@ public class ReverseProxyResource extends CoapResource {
 		}
 	}
 
+	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
+		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
+		PeriodicRequest invalid = getSubscriber(client);
+		/*invalid.setAllowed(false);
+		addInvalidSubscriber(client, invalid);*/
+		removeSubscriber(client);
+		Response response = getLast(invalid.getOriginRequest(), invalid);
+		response.getOptions().removeObserve();
+		invalid.getExchange().respond(response);
+	}
+
+//	private synchronized void addInvalidSubscriber(ClientEndpoint client,
+//			PeriodicRequest pr) {
+//		LOGGER.log(Level.INFO, "addInvalidSubscriber(" + client+ ", "+ pr +")");
+//		this.invalidSubscriberList.put(client, pr);
+//	}
+//	
+//	private synchronized void removeInvalidSubscriber(ClientEndpoint clientEndpoint) {
+//		LOGGER.log(Level.INFO, "removeInvalidSubscriber(" + clientEndpoint + ")");
+//		this.invalidSubscriberList.remove(clientEndpoint);		
+//	}
+//	
+//	public synchronized Map<ClientEndpoint, PeriodicRequest> getInvalidSubscriberList() {
+//		LOGGER.log(Level.INFO, "getInvalidSubscriberList()");
+//		Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
+//		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.invalidSubscriberList.entrySet()){
+//			ClientEndpoint cl = new ClientEndpoint(entry.getKey().getAddress(), entry.getKey().getPort());
+//			PeriodicRequest pr = new PeriodicRequest();
+//			pr.setAllowed(entry.getValue().isAllowed());
+//			pr.setCommittedPeriod(entry.getValue().getCommittedPeriod());
+//			pr.setExchange(entry.getValue().getExchange());
+//			pr.setLastNotificationSent(entry.getValue().getLastNotificationSent());
+//			pr.setOriginRequest(entry.getValue().getOriginRequest());
+//			pr.setPmax(entry.getValue().getPmax());
+//			pr.setPmin(entry.getValue().getPmin());
+//			pr.setTimestampLastNotificationSent(entry.getValue().getTimestampLastNotificationSent());
+//			pr.setResponseCode(entry.getValue().getResponseCode());
+//			tmp.put(cl, pr);
+//		}
+//		return tmp;
+//	}
+//	
+//	private synchronized boolean invalidSubscriverEmpty() {
+//		return this.invalidSubscriberList.isEmpty();
+//	}
+	
 	private boolean updatePeriods(ScheduleResults ret) {
 		LOGGER.log(Level.INFO, "updatePeriods(" + ret + ")");
 		int pmin = ret.getPmin();
