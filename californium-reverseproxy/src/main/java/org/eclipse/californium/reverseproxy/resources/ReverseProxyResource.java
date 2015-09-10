@@ -900,13 +900,14 @@ public class ReverseProxyResource extends CoapResource {
 		@Override
 		public void run() {
 			while(observeEnabled.get()){
+				LOGGER.log(Level.INFO, "NotificationTask Run");
 				long delay = notificationPeriodMin;
 				if(relation == null || relation.getCurrent() != null){
 					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberList();
 					for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
 						PeriodicRequest pr = entry.getValue();
 						ClientEndpoint cl = entry.getKey();
-						LOGGER.log(Level.INFO, "SubscriberList - Entry <"+ cl+", "+pr+">)");
+						
 						if(pr.isAllowed()){
 							Date now = new Date();
 							long timestamp = now.getTime();
