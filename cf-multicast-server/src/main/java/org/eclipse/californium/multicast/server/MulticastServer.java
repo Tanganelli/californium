@@ -228,10 +228,14 @@ public class MulticastServer extends CoapServer{
         		System.out.println("Notification Period = " + this.notificationPeriod);
         		System.out.println("Max Period = " + max_period);
         		System.out.println("Min Period = " + min_period);
-
-        		lock.lock();
-        		newPeriod.signal();
-        		lock.unlock();
+        		if(task != null){
+	        		lock.lock();
+	        		newPeriod.signal();
+	        		lock.unlock();
+        		} else {
+        			task = new DynamicTimeTask();
+        			task.start();
+        		}
         	}
         	exchange.respond(CHANGED);
         }
