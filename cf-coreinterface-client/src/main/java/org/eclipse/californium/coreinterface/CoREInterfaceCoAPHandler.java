@@ -53,7 +53,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	}
 	@Override
 	public void onLoad(CoapResponse response) {
-
+		LOGGER.info(response.advanced().toString());
 		Date now = new Date();
 		long timestamp = now.getTime();
 		notificationsCount++;
