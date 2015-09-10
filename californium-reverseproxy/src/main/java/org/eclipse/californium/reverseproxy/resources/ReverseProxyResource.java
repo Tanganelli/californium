@@ -816,33 +816,33 @@ public class ReverseProxyResource extends CoapResource {
 							long clientRTT = reverseProxy.getClientRTT(cl.getAddress(), cl.getPort());
 							long nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
 							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
-							System.out.println("timestamp " + timestamp);
-							System.out.println("next Interval " + nextInterval);
-							System.out.println("client RTT " + clientRTT);
-							System.out.println("deadline " + deadline);
+//							System.out.println("timestamp " + timestamp);
+//							System.out.println("next Interval " + nextInterval);
+//							System.out.println("client RTT " + clientRTT);
+//							System.out.println("deadline " + deadline);
 							if(timestamp >= nextInterval){
-								System.out.println("Time to send");
+								//System.out.println("Time to send");
 								if(pr.getLastNotificationSent().equals(relation.getCurrent().advanced())){ //old notification
-									System.out.println("Old Notification");
+									//System.out.println("Old Notification");
 									if(delay > (deadline - timestamp))
 										delay = (deadline - timestamp);
-									System.out.println("Delay " + delay);
+									//System.out.println("Delay " + delay);
 									if(delay < 0) 
 										sendValidated(cl, pr, timestamp);
 									
 								} else{
-									System.out.println("New notification");
+									//System.out.println("New notification");
 									sendValidated(cl, pr, timestamp);
 								}
 							} else { // too early
-								System.out.println("Too early");
+								//System.out.println("Too early");
 								long nextawake = timestamp + delay;
-								System.out.println("next Awake " + nextawake);
+								//System.out.println("next Awake " + nextawake);
 								if(nextawake >= deadline){ // check if next awake will be to late
 									if(delay > (nextInterval - timestamp))
 										delay = (nextInterval - timestamp);
 								}
-								System.out.println("Delay " + delay);
+								//System.out.println("Delay " + delay);
 							}
 						}
 							
