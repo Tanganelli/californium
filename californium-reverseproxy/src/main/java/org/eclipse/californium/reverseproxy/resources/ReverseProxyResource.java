@@ -265,7 +265,7 @@ public class ReverseProxyResource extends CoapResource {
 		responseForClients.setDestinationPort(request.getSourcePort());
 		responseForClients.setToken(request.getToken());
 		responseForClients.getOptions().setObserve(notification.getOptions().getObserve());
-		responseForClients.getOptions().setMaxAge(pr.getPmax());
+		responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);
 		
 		//save lastNotification for the client
 		pr.setLastNotificationSent(notification);
@@ -632,7 +632,9 @@ public class ReverseProxyResource extends CoapResource {
 		removeSubscriber(client);
 		Response response = getLast(invalid.getOriginRequest(), invalid);
 		response.getOptions().removeObserve();
+		LOGGER.info(response.toString());
 		invalid.getExchange().respond(response);
+		LOGGER.info(invalid.getExchange().toString());
 	}
 
 //	private synchronized void addInvalidSubscriber(ClientEndpoint client,
@@ -989,7 +991,6 @@ public class ReverseProxyResource extends CoapResource {
 				responseForClients.setDestinationPort(cl.getPort());
 				responseForClients.setToken(pr.getOriginRequest().getToken());
 				responseForClients.getOptions().setObserve(relation.getCurrent().getOptions().getObserve());
-				responseForClients.getOptions().setMaxAge(pr.getPmax());
 				pr.getExchange().respond(responseForClients);
 			}
 			
