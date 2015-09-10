@@ -73,6 +73,12 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 			missDeadlines++;
 		}
 		
+		if(response.getOptions().getObserve() == null){
+			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce without OBSERVE");
+			System.out.println(getNow() + "INFO - Received Responce without OBSERVE");
+
+		}
+		
 		timestampLast = timestamp;
 		if(notificationsCount >= stopCount){
 			lock.lock();

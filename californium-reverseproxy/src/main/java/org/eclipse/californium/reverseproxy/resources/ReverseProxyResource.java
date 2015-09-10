@@ -533,6 +533,25 @@ public class ReverseProxyResource extends CoapResource {
 		}
 		return tmp;
 	}
+	
+	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
+		PeriodicRequest origin;
+		if(this.subscriberList.containsKey(clientEndpoint))
+			origin = this.subscriberList.get(clientEndpoint);
+		else
+			return null;
+		PeriodicRequest pr = new PeriodicRequest();
+		pr.setAllowed(origin.isAllowed());
+		pr.setCommittedPeriod(origin.getCommittedPeriod());
+		pr.setExchange(origin.getExchange());
+		pr.setLastNotificationSent(origin.getLastNotificationSent());
+		pr.setOriginRequest(origin.getOriginRequest());
+		pr.setPmax(origin.getPmax());
+		pr.setPmin(origin.getPmin());
+		pr.setTimestampLastNotificationSent(origin.getTimestampLastNotificationSent());
+		pr.setResponseCode(origin.getResponseCode());
+		return pr;
+	}
 
 	/**
 	 * Create an observing request from the proxy to the end device.
@@ -606,7 +625,7 @@ public class ReverseProxyResource extends CoapResource {
 
 	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
-		PeriodicRequest invalid = getSubscriber(client);
+		PeriodicRequest invalid = getSubscriberCopy(client);
 		/*invalid.setAllowed(false);
 		addInvalidSubscriber(client, invalid);*/
 		removeSubscriber(client);
