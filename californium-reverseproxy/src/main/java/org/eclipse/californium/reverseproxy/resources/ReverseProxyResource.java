@@ -498,24 +498,24 @@ public class ReverseProxyResource extends CoapResource {
 		
 	}
 	private synchronized void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
-		LOGGER.log(Level.INFO, "addSubscriber(" + clientEndpoint+ ", "+ pr +")");
+		LOGGER.log(Level.FINER, "addSubscriber(" + clientEndpoint+ ", "+ pr +")");
 		this.subscriberList.put(clientEndpoint, pr);
 	}
 
 	private synchronized void removeSubscriber(ClientEndpoint clientEndpoint) {
-		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ")");
+		LOGGER.log(Level.FINER, "removeSubscriber(" + clientEndpoint + ")");
 		this.subscriberList.remove(clientEndpoint);		
 	}
 	
 	private synchronized PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
-		LOGGER.log(Level.INFO, "getSubscriber(" + clientEndpoint + ")");
+		LOGGER.log(Level.FINER, "getSubscriber(" + clientEndpoint + ")");
 		if(this.subscriberList.containsKey(clientEndpoint))
 			return this.subscriberList.get(clientEndpoint);
 		return null;
 	}
 	
 	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberList() {
-		LOGGER.log(Level.INFO, "getSubscriberList()");
+		LOGGER.log(Level.FINER, "getSubscriberList()");
 		Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
 			ClientEndpoint cl = new ClientEndpoint(entry.getKey().getAddress(), entry.getKey().getPort());
@@ -535,6 +535,7 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
+		LOGGER.log(Level.INFO, "getSubscriberCopy(" + clientEndpoint + ")");
 		PeriodicRequest origin;
 		if(this.subscriberList.containsKey(clientEndpoint))
 			origin = this.subscriberList.get(clientEndpoint);
