@@ -608,7 +608,8 @@ public class ReverseProxyResource extends CoapResource {
 				if (response != null) {
 					LOGGER.finer("Coap response received.");
 					// get RTO from the response
-					this.rtt = response.getRemoteEndpoint().getCurrentRTO();
+					//TODO uncomment
+					//this.rtt = response.getRemoteEndpoint().getCurrentRTO();
 					break;
 				} else {
 					LOGGER.warning("No response received.");
