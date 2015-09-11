@@ -23,8 +23,10 @@ import java.util.logging.Logger;
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapObserveRelation;
 import org.eclipse.californium.core.CoapResource;
+import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
+import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.OptionSet;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
@@ -587,9 +589,16 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private void setObservingQoS() {
 		LOGGER.log(Level.INFO, "setObserving()");
-		Request request = new Request(Code.PUT, Type.CON);
+		CoapClient clientSet = new CoapClient();
+		
+		
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
+		String uri = this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period;
+		clientSet.setURI(uri);
+		CoapResponse response = clientSet.put("", MediaTypeRegistry.TEXT_PLAIN);
+		LOGGER.info("Coap response received. - " + response);
+		/*Request request = new Request(Code.PUT, Type.CON);
 		request.setURI(this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period);
 		request.send();
 		LOGGER.info("setObservingQos - " + request);
@@ -623,7 +632,7 @@ public class ReverseProxyResource extends CoapResource {
 			}
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
-		}
+		}*/
 	}
 
 	/**
