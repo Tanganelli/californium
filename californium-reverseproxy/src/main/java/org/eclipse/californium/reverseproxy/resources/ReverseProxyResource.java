@@ -606,7 +606,7 @@ public class ReverseProxyResource extends CoapResource {
 				// receive the response
 	
 				if (response != null) {
-					LOGGER.finer("Coap response received.");
+					LOGGER.info("Coap response received.");
 					// get RTO from the response
 					//TODO uncomment
 					//this.rtt = response.getRemoteEndpoint().getCurrentRTO();
@@ -1008,6 +1008,7 @@ public class ReverseProxyResource extends CoapResource {
 			LOGGER.log(Level.FINER, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
 			long timestampResponse = relation.getCurrent().advanced().getTimestamp();
 			long maxAge = relation.getCurrent().advanced().getOptions().getMaxAge() * 1000; //convert to milliseconds
+			
 			if(timestampResponse + maxAge > timestamp){
 				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
 				pr.setTimestampLastNotificationSent(timestamp);
@@ -1031,6 +1032,8 @@ public class ReverseProxyResource extends CoapResource {
 				responseForClients.setToken(pr.getOriginRequest().getToken());
 				responseForClients.getOptions().setObserve(relation.getCurrent().getOptions().getObserve());
 				pr.getExchange().respond(responseForClients);
+			} else {
+				LOGGER.severe("Response no more valid");
 			}
 			
 		}	
