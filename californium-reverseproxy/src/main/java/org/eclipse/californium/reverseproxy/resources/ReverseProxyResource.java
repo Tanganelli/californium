@@ -209,13 +209,10 @@ public class ReverseProxyResource extends CoapResource {
 				if(observeEnabled.compareAndSet(false, true)){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					Response responseForClients = getLast(request, pr);
-					pr.setLastNotificationSent(relation.getCurrent().advanced());
 					Date now = new Date();
 					long timestamp = now.getTime();
-					pr.setTimestampLastNotificationSent(timestamp);
-					addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
+					updateSubscriberNotification(new ClientEndpoint(request.getSource(), request.getSourcePort()), timestamp, relation.getCurrent().advanced());
 					exchange.respond(responseForClients);
-					
 					LOGGER.info("Start Notification Task");
 					notificationExecutor.submit(notificationTask);
 					rttExecutor.submit(rttTask);
@@ -223,11 +220,9 @@ public class ReverseProxyResource extends CoapResource {
 					//reply to client
 					Response responseForClients = getLast(request, pr);
 					//save lastNotification for the client
-					pr.setLastNotificationSent(relation.getCurrent().advanced());
 					Date now = new Date();
 					long timestamp = now.getTime();
-					pr.setTimestampLastNotificationSent(timestamp);
-					addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
+					updateSubscriberNotification(new ClientEndpoint(request.getSource(), request.getSourcePort()), timestamp, relation.getCurrent().advanced());
 					exchange.respond(responseForClients);
 					lock.lock();
 					newNotification.signalAll();
@@ -513,6 +508,13 @@ public class ReverseProxyResource extends CoapResource {
 			return pr;
 		}
 		return null;
+	}
+	private synchronized void updateSubscriberNotification(ClientEndpoint clientEndpoint,
+			long timestamp, Response response) {
+		if(this.subscriberList.containsKey(clientEndpoint)){
+			this.subscriberList.get(clientEndpoint).setTimestampLastNotificationSent(timestamp);
+			this.subscriberList.get(clientEndpoint).setLastNotificationSent(response);
+		}
 		
 	}
 	//private void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
@@ -540,7 +542,7 @@ public class ReverseProxyResource extends CoapResource {
 	//public Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 		LOGGER.log(Level.FINER, "getSubscriberList()");
-		/*Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
+		Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
 			ClientEndpoint cl = new ClientEndpoint(entry.getKey().getAddress(), entry.getKey().getPort());
 			PeriodicRequest pr = new PeriodicRequest();
@@ -555,14 +557,14 @@ public class ReverseProxyResource extends CoapResource {
 			pr.setResponseCode(entry.getValue().getResponseCode());
 			tmp.put(cl, pr);
 		}
-		return tmp;*/
-		return this.subscriberList;
+		return tmp;
+		//return this.subscriberList;
 	}
 	
 	//private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "getSubscriberCopy(" + clientEndpoint + ")");
-		/*PeriodicRequest origin;
+		PeriodicRequest origin;
 		if(this.subscriberList.containsKey(clientEndpoint))
 			origin = this.subscriberList.get(clientEndpoint);
 		else
@@ -577,8 +579,8 @@ public class ReverseProxyResource extends CoapResource {
 		pr.setPmin(origin.getPmin());
 		pr.setTimestampLastNotificationSent(origin.getTimestampLastNotificationSent());
 		pr.setResponseCode(origin.getResponseCode());
-		return pr;*/
-		return this.subscriberList.get(clientEndpoint);
+		return pr;
+		//return this.subscriberList.get(clientEndpoint);
 	}
 
 	/**
@@ -1027,14 +1029,13 @@ public class ReverseProxyResource extends CoapResource {
 		private void sendValidated(ClientEndpoint cl, PeriodicRequest pr, long timestamp) {
 			LOGGER.log(Level.FINER, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
 			long timestampResponse = relation.getCurrent().advanced().getTimestamp();
+			Response response = relation.getCurrent().advanced();
 			long maxAge = relation.getCurrent().advanced().getOptions().getMaxAge() * 1000; //convert to milliseconds
 			
 			if(timestampResponse + maxAge > timestamp){
 				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
-				pr.setTimestampLastNotificationSent(timestamp);
-				pr.setLastNotificationSent(relation.getCurrent().advanced());
-				addSubscriber(cl, pr);
-				Response responseForClients = new Response(relation.getCurrent().advanced().getCode());
+				updateSubscriberNotification(cl, timestamp, response);
+				Response responseForClients = new Response(response.getCode());
 				// copy payload
 				byte[] payload = relation.getCurrent().advanced().getPayload();
 				responseForClients.setPayload(payload);
