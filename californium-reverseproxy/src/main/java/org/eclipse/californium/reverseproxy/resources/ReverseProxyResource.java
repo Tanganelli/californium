@@ -511,8 +511,11 @@ public class ReverseProxyResource extends CoapResource {
 	
 	private void removeSubscriber(ClientEndpoint clientEndpoint) {
 	//private synchronized void removeSubscriber(ClientEndpoint clientEndpoint) {
-		LOGGER.log(Level.FINER, "removeSubscriber(" + clientEndpoint + ")");
-		this.subscriberList.remove(clientEndpoint);		
+		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ")");
+		PeriodicRequest pr = this.subscriberList.remove(clientEndpoint);		
+		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ") - " + pr.toString());
+		boolean ret = this.subscriberList.containsKey(clientEndpoint);
+		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ") : "+ ret);
 	}
 	
 	private PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
