@@ -1,6 +1,8 @@
 package org.eclipse.californium.reverseproxy.resources;
 import java.util.Collection;
 import java.util.Date;
+import java.util.logging.Logger;
+
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.OptionSet;
@@ -14,49 +16,17 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 
 	private ReverseProxyResource ownerResource;
 	private int count = 0;
+	/** The logger. */
+	protected final static Logger LOGGER = Logger.getLogger(ReverseProxyResource.class.getCanonicalName());
+
 	public ReverseProxyCoAPHandler(ReverseProxyResource ownerResource){
 		this.ownerResource = ownerResource;
 	}
 	
 	@Override
 	public void onLoad(CoapResponse coapResponse) {
-		Response response = coapResponse.advanced();
+		LOGGER.info("new incoming notification");
 		ownerResource.getNotificationOrderer().getNextObserveNumber();
-//		if(ownerResource.getLastNotificationMessage() == null){
-//			Collection<PeriodicRequest> tmp = ownerResource.getSubscriberList().values();
-//			for(PeriodicRequest pr : tmp){
-//				if(pr.isAllowed()){
-//					pr.setLastNotificationSent(response);
-//					Date now = new Date();
-//					long timestamp = now.getTime();
-//					pr.setTimestampLastNotificationSent(timestamp);
-//					Response responseForClients = new Response(response.getCode());
-//					// copy payload
-//					byte[] payload = response.getPayload();
-//					responseForClients.setPayload(payload);
-//		
-//					// copy the timestamp
-//					
-//					responseForClients.setTimestamp(timestamp);
-//		
-//					// copy every option
-//					responseForClients.setOptions(new OptionSet(response.getOptions()));
-//					responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);		
-//					responseForClients.setDestination(pr.getClientEndpoint().getRemoteAddress());
-//					responseForClients.setDestinationPort(pr.getClientEndpoint().getRemotePort());
-//					responseForClients.setToken(pr.getToken());
-//					pr.getExchange().respond(responseForClients);
-//					
-//				}
-//			}
-//		}
-		/*System.out.println("*************************");
-		System.out.println("currentRTO: " + response.getRemoteEndpoint().getCurrentRTO());
-		System.out.println("RTO: " + response.getRemoteEndpoint().getRTO());
-		System.out.println("RTT_max: " + response.getRemoteEndpoint().RTT_max);
-		System.out.println("RTO_min: " + response.getRemoteEndpoint().RTO_min);
-		System.out.println("*************************");
-		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());*/
 		if(count==10)
 			ownerResource.updateRTT(11000);
 		count++;

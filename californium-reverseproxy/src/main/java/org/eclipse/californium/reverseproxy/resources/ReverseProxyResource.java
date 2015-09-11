@@ -590,8 +590,6 @@ public class ReverseProxyResource extends CoapResource {
 	private void setObservingQoS() {
 		LOGGER.log(Level.INFO, "setObserving()");
 		CoapClient clientSet = new CoapClient();
-		
-		
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		String uri = this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period;
