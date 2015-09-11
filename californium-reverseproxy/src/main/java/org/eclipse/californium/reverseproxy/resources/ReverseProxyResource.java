@@ -606,8 +606,10 @@ public class ReverseProxyResource extends CoapResource {
 				// receive the response
 	
 				if (response != null) {
-					LOGGER.info("Coap response received.");
+					LOGGER.info("Coap response received. - " + response);
+
 					// get RTO from the response
+					
 					//TODO uncomment
 					//this.rtt = response.getRemoteEndpoint().getCurrentRTO();
 					break;
@@ -615,6 +617,9 @@ public class ReverseProxyResource extends CoapResource {
 					LOGGER.warning("No response received.");
 					timeout += WAIT_FACTOR;
 				}
+			}
+			if(timeout == 5*WAIT_FACTOR){
+				LOGGER.warning("Observig cannot be set on remote endpoint.");
 			}
 		} catch (InterruptedException e) {
 			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
