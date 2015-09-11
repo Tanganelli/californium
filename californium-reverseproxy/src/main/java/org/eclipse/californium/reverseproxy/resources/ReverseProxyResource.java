@@ -207,7 +207,14 @@ public class ReverseProxyResource extends CoapResource {
 				if(observeEnabled.compareAndSet(false, true)){
 					relation = client.observe(new ReverseProxyCoAPHandler(this));
 					Response responseForClients = getLast(request, pr);
+					pr.setLastNotificationSent(relation.getCurrent().advanced());
+					Date now = new Date();
+					long timestamp = now.getTime();
+					pr.setTimestampLastNotificationSent(timestamp);
+					addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
 					exchange.respond(responseForClients);
+					
+					LOGGER.info("Start Notification Task");
 					notificationExecutor.submit(notificationTask);
 					rttExecutor.submit(rttTask);
 				}else{
@@ -220,6 +227,9 @@ public class ReverseProxyResource extends CoapResource {
 					pr.setTimestampLastNotificationSent(timestamp);
 					addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
 					exchange.respond(responseForClients);
+					lock.lock();
+					newNotification.signalAll();
+					lock.unlock();
 				}
 			}
 			else if(res == ResponseCode.FORBIDDEN){
@@ -975,6 +985,7 @@ public class ReverseProxyResource extends CoapResource {
 							
 					}
 				}
+				LOGGER.info("Delay " + delay);
 				try {
 					lock.lock();
 					newNotification.await(delay, TimeUnit.MILLISECONDS);
