@@ -592,7 +592,7 @@ public class ReverseProxyResource extends CoapResource {
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		request.setURI(this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period);
 		request.send();
-		//LOGGER.info("setObservingQos - " + request);
+		LOGGER.info("setObservingQos - " + request);
 		Response response;
 		long timeout = WAIT_FACTOR;
 		try {
@@ -786,12 +786,11 @@ public class ReverseProxyResource extends CoapResource {
 		
 		int periodMax = periods.getPmax();
 		int periodMin = periods.getPmin();
-		
+		if(periodMin < rtt)
+			periodMin = (int) rtt;
 		if(periodMax > rtt){
 			for(Task t : tasks){
-				LOGGER.info(this.subscriberList.get(t.getClient()).toString() + " : " + this.subscriberList.get(t.getClient()).isAllowed());
 				this.subscriberList.get(t.getClient()).setAllowed(true);
-				LOGGER.info(this.subscriberList.get(t.getClient()).toString() + " : " + this.subscriberList.get(t.getClient()).isAllowed());
 			}
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
