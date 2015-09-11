@@ -511,6 +511,7 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	private synchronized void updateSubscriberNotification(ClientEndpoint clientEndpoint,
 			long timestamp, Response response) {
+		LOGGER.log(Level.FINER, "updateSubscriberNotification(" + clientEndpoint+ ", "+ timestamp+", "+response+")");
 		if(this.subscriberList.containsKey(clientEndpoint)){
 			this.subscriberList.get(clientEndpoint).setTimestampLastNotificationSent(timestamp);
 			this.subscriberList.get(clientEndpoint).setLastNotificationSent(response);
