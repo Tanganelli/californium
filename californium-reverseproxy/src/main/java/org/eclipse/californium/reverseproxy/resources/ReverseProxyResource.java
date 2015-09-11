@@ -277,6 +277,7 @@ public class ReverseProxyResource extends CoapResource {
 		Date now = new Date();
 		long timestamp = now.getTime();
 		pr.setTimestampLastNotificationSent(timestamp);
+		addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
 		return responseForClients;
 	}
 	
@@ -1004,12 +1005,13 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	public class RttTask implements Runnable {
-		 
 	    @Override
 	    public void run() {
 	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
-	    		updateRTT(evaluateRtt());
+	    		//TODO 
+	    		//updateRTT(evaluateRtt());
+	    		
 	    		try {
 					Thread.sleep(PERIOD_RTT);
 				} catch (InterruptedException e) {

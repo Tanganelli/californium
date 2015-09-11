@@ -13,6 +13,7 @@ import org.eclipse.californium.reverseproxy.PeriodicRequest;
 public class ReverseProxyCoAPHandler implements CoapHandler{
 
 	private ReverseProxyResource ownerResource;
+	private int count = 0;
 	public ReverseProxyCoAPHandler(ReverseProxyResource ownerResource){
 		this.ownerResource = ownerResource;
 	}
@@ -56,6 +57,9 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		System.out.println("RTO_min: " + response.getRemoteEndpoint().RTO_min);
 		System.out.println("*************************");
 		ownerResource.updateRTT(response.getRemoteEndpoint().getCurrentRTO());*/
+		if(count==10)
+			ownerResource.updateRTT(11000);
+		count++;
 		Date now = new Date();
 		long timestamp = now.getTime();
 		ownerResource.setTimestamp(timestamp);
