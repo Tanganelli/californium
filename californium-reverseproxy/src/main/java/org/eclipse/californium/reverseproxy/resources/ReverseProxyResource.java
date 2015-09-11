@@ -216,7 +216,11 @@ public class ReverseProxyResource extends CoapResource {
 					exchange.respond(responseForClients);
 				}
 			}
-			else{
+			else if(res == ResponseCode.FORBIDDEN){
+				Response response = getLast(request, getSubscriberCopy(new ClientEndpoint(request.getSource(), request.getSourcePort())));
+				response.getOptions().removeObserve();
+				exchange.respond(response);
+			} else {
 				exchange.respond(res);
 			}
 		}else if((request.getOptions().getObserve() != null && request.getOptions().getObserve() == 1)){
@@ -226,7 +230,7 @@ public class ReverseProxyResource extends CoapResource {
 			if(relation == null || relation.getCurrent() == null){
 				responseForClients = new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 			} else {
-				responseForClients = getLast(request, getSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort())));
+				responseForClients = getLast(request, getSubscriberCopy(new ClientEndpoint(request.getSource(), request.getSourcePort())));
 				responseForClients.getOptions().removeObserve();
 			}			
 			exchange.respond(responseForClients);
@@ -410,7 +414,7 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.FINER, "handleGETCoRE(" + exchange + ")");
 		Request request = exchange.advanced().getCurrentRequest();
 		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
-		PeriodicRequest pr = getSubscriber(clientEndpoint);
+		PeriodicRequest pr = getSubscriberCopy(clientEndpoint);
 		if(pr == null)
 			pr = new PeriodicRequest();
 		
@@ -451,7 +455,7 @@ public class ReverseProxyResource extends CoapResource {
 		Request request = exchange.advanced().getCurrentRequest();
 		List<String> queries = request.getOptions().getUriQuery();
 		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
-		PeriodicRequest pr = getSubscriber(clientEndpoint);
+		PeriodicRequest pr = getSubscriberCopy(clientEndpoint);
 		if(pr == null)
 			pr = new PeriodicRequest();
 		int pmin = -1;
