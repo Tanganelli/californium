@@ -26,5 +26,9 @@ public class ScheduleResults extends Periods{
 	public void setValid(boolean valid) {
 		this.valid = valid;
 	}
+	
+	public String toString(){
+		return super.toString() + " RTT = "+ lastRtt + " valid = " + valid;
+	}
 
 }

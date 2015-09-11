@@ -586,7 +586,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the Error ResponseCode or null if success.
 	 */
 	private void setObservingQoS() {
-		LOGGER.log(Level.FINER, "setObserving()");
+		LOGGER.log(Level.INFO, "setObserving()");
 		Request request = new Request(Code.PUT, Type.CON);
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
@@ -699,7 +699,7 @@ public class ReverseProxyResource extends CoapResource {
 //	}
 	
 	private boolean updatePeriods(ScheduleResults ret) {
-		LOGGER.log(Level.FINER, "updatePeriods(" + ret + ")");
+		LOGGER.log(Level.INFO, "updatePeriods(" + ret + ")");
 		int pmin = ret.getPmin();
 		int pmax = ret.getPmax();
 		this.lastValidRtt = ret.getLastRtt();

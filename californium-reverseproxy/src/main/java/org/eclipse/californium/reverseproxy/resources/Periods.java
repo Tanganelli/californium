@@ -24,4 +24,8 @@ public class Periods {
 	public void setPmax(int pmax) {
 		Pmax = pmax;
 	}
+	
+	public String toString(){
+		return "("+Pmin+", "+Pmax+")";
+	}
 }
