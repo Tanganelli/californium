@@ -318,7 +318,7 @@ public class ReverseProxyResource extends CoapResource {
 			removeSubscriber(clientEndpoint);
 		
 			if(getSubscriberListCopy().isEmpty()){
-				LOGGER.log(Level.FINER, "SubscriberList Empty");
+				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
 				lock.lock();
 				newNotification.signalAll();
@@ -963,8 +963,16 @@ public class ReverseProxyResource extends CoapResource {
 							Date now = new Date();
 							long timestamp = now.getTime();
 							long clientRTT = reverseProxy.getClientRTT(cl.getAddress(), cl.getPort());
-							long nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
-							long deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
+							long nextInterval = 0;
+							long deadline = 0;
+							if(pr.getTimestampLastNotificationSent() == -1){
+								nextInterval = (timestamp + ((long)pr.getPmin()));
+								deadline = timestamp + ((long)pr.getPmax() - clientRTT);
+							}
+							else{
+								nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
+								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
+							}
 							System.out.println("timestamp " + timestamp);
 							System.out.println("next Interval " + nextInterval);
 							System.out.println("client RTT " + clientRTT);
@@ -973,10 +981,10 @@ public class ReverseProxyResource extends CoapResource {
 								System.out.println("Time to send");
 								if(pr.getLastNotificationSent().equals(relation.getCurrent().advanced())){ //old notification
 									System.out.println("Old Notification");
-									if(delay > (deadline - timestamp))
+									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
 										delay = (deadline - timestamp);
 									//System.out.println("Delay " + delay);
-									if(delay < 0) 
+									if((deadline - timestamp) < 0) 
 										sendValidated(cl, pr, timestamp);
 									
 								} else{
