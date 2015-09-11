@@ -503,30 +503,30 @@ public class ReverseProxyResource extends CoapResource {
 		return null;
 		
 	}
-	private void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
-	//private synchronized void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
+	//private void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
+	private synchronized void addSubscriber(ClientEndpoint clientEndpoint, PeriodicRequest pr) {
 		LOGGER.log(Level.FINER, "addSubscriber(" + clientEndpoint+ ", "+ pr +")");
 		this.subscriberList.put(clientEndpoint, pr);
 	}
 	
-	private void removeSubscriber(ClientEndpoint clientEndpoint) {
-	//private synchronized void removeSubscriber(ClientEndpoint clientEndpoint) {
+	//private void removeSubscriber(ClientEndpoint clientEndpoint) {
+	private synchronized void removeSubscriber(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ")");
 		PeriodicRequest pr = this.subscriberList.remove(clientEndpoint);		
 		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ") - " + pr.toString());
 		dumpSubscribers();
 	}
 	
-	private PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
-	//private synchronized PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
+	//private PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
+	private synchronized PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.FINER, "getSubscriber(" + clientEndpoint + ")");
 		if(this.subscriberList.containsKey(clientEndpoint))
 			return this.subscriberList.get(clientEndpoint);
 		return null;
 	}
 	
-	public Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
-	//public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
+	//public Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
+	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 		LOGGER.log(Level.FINER, "getSubscriberList()");
 		/*Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
@@ -547,8 +547,8 @@ public class ReverseProxyResource extends CoapResource {
 		return this.subscriberList;
 	}
 	
-	private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
-	//private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
+	//private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
+	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "getSubscriberCopy(" + clientEndpoint + ")");
 		/*PeriodicRequest origin;
 		if(this.subscriberList.containsKey(clientEndpoint))
@@ -755,8 +755,8 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private ScheduleResults schedule(){
-	//private synchronized ScheduleResults schedule(){
+	//private ScheduleResults schedule(){
+	private synchronized ScheduleResults schedule(){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
