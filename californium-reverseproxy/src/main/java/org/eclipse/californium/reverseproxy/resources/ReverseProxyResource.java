@@ -213,6 +213,12 @@ public class ReverseProxyResource extends CoapResource {
 				}else{
 					//reply to client
 					Response responseForClients = getLast(request, pr);
+					//save lastNotification for the client
+					pr.setLastNotificationSent(relation.getCurrent().advanced());
+					Date now = new Date();
+					long timestamp = now.getTime();
+					pr.setTimestampLastNotificationSent(timestamp);
+					addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
 					exchange.respond(responseForClients);
 				}
 			}
@@ -272,12 +278,6 @@ public class ReverseProxyResource extends CoapResource {
 		//TODO: correct this
 		//responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);
 		responseForClients.getOptions().setMaxAge((pr.getPmax() / 1000) + 1000);
-		//save lastNotification for the client
-		pr.setLastNotificationSent(notification);
-		Date now = new Date();
-		long timestamp = now.getTime();
-		pr.setTimestampLastNotificationSent(timestamp);
-		addSubscriber(new ClientEndpoint(request.getSource(), request.getSourcePort()), pr);
 		return responseForClients;
 	}
 	
