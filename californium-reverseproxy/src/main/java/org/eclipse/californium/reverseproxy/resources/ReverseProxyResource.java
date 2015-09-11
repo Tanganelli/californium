@@ -514,8 +514,7 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ")");
 		PeriodicRequest pr = this.subscriberList.remove(clientEndpoint);		
 		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ") - " + pr.toString());
-		boolean ret = this.subscriberList.containsKey(clientEndpoint);
-		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ") : "+ ret);
+		dumpSubscribers();
 	}
 	
 	private PeriodicRequest getSubscriber(ClientEndpoint clientEndpoint) {
@@ -619,6 +618,7 @@ public class ReverseProxyResource extends CoapResource {
 		boolean end = false;
 		while(!end) // delete the most demanding client
 		{
+			dumpSubscribers();
 			ScheduleResults ret = schedule();
 			end = ret.isValid();
 			if(!end){
@@ -765,7 +765,8 @@ public class ReverseProxyResource extends CoapResource {
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		
+		//TODO remove
+		dumpSubscribers();
 		for(ClientEndpoint ce : this.subscriberList.keySet()){
 			tasks.add(new Task(ce, this.subscriberList.get(ce)));
 		}
@@ -786,6 +787,14 @@ public class ReverseProxyResource extends CoapResource {
 		return new ScheduleResults(periodMin, periodMax, rtt, false);
 	}
 	
+	private void dumpSubscribers() {
+		LOGGER.log(Level.INFO, "dumpSubscribers()");
+		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
+			LOGGER.info(entry.getKey().toString() + " " + entry.getValue().toString());
+		}
+		
+	}
+
 	/**
 	 * Evaluates RTT of the end device by issuing a GET request.
 	 * @return 
