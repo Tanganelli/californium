@@ -305,7 +305,7 @@ public class ReverseProxyResource extends CoapResource {
 		if(clientEndpoint != null){
 			removeSubscriber(clientEndpoint);
 		
-			if(getSubscriberList().isEmpty()){
+			if(getSubscriberListCopy().isEmpty()){
 				LOGGER.log(Level.FINER, "SubscriberList Empty");
 				observeEnabled.set(false);
 				lock.lock();
@@ -453,7 +453,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return the ResponseCode to used in the reply to the client
 	 */
 	private PeriodicRequest handlePUTCoRE(CoapExchange exchange) {
-		LOGGER.log(Level.FINER, "handlePUTCoRE(" + exchange + ")");
+		LOGGER.log(Level.INFO, "handlePUTCoRE(" + exchange + ")");
 		Request request = exchange.advanced().getCurrentRequest();
 		List<String> queries = request.getOptions().getUriQuery();
 		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
@@ -520,7 +520,7 @@ public class ReverseProxyResource extends CoapResource {
 		return null;
 	}
 	
-	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberList() {
+	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 		LOGGER.log(Level.FINER, "getSubscriberList()");
 		Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
@@ -707,7 +707,7 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
 		ClientEndpoint ret = null;
-		Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberList();
+		Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberListCopy();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
 			if(entry.getValue().getPmax() < minPmax){
 				minPmax = entry.getValue().getPmax();
@@ -728,6 +728,7 @@ public class ReverseProxyResource extends CoapResource {
 		if(this.rtt == -1) this.rtt = evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
 		ScheduleResults ret = schedule();
+		LOGGER.log(Level.INFO, " End scheduleNewRequest(" + params + ")");
 		if(ret.isValid()){
 			boolean periodChanged = updatePeriods(ret);
 			if(periodChanged){
@@ -911,7 +912,7 @@ public class ReverseProxyResource extends CoapResource {
 				LOGGER.log(Level.INFO, "NotificationTask Run");
 				long delay = notificationPeriodMin;
 				if(relation == null || relation.getCurrent() != null){
-					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberList();
+					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberListCopy();
 					for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
 						PeriodicRequest pr = entry.getValue();
 						ClientEndpoint cl = entry.getKey();
