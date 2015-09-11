@@ -765,9 +765,9 @@ public class ReverseProxyResource extends CoapResource {
 		
 		if(periodMax > rtt){
 			for(Task t : tasks){
-				if(this.subscriberList.containsKey(t.getClient())){
-					this.subscriberList.get(t.getClient()).setAllowed(true);
-				}
+				LOGGER.info(this.subscriberList.get(t.getClient()).toString() + " : " + this.subscriberList.get(t.getClient()).isAllowed());
+				this.subscriberList.get(t.getClient()).setAllowed(true);
+				LOGGER.info(this.subscriberList.get(t.getClient()).toString() + " : " + this.subscriberList.get(t.getClient()).isAllowed());
 			}
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
