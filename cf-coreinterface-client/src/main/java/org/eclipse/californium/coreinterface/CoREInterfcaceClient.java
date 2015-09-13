@@ -82,7 +82,7 @@ public class CoREInterfcaceClient {
 			CoapObserveRelation relation = client.observe(handler);
 			try {
 				lock.lock();
-				while(handler.getNotificationsCount() < stop)
+				while(handler.getNotificationsCount() < stop && !handler.isExit())
 					notEnd.await();
 				
 			} catch (InterruptedException e) {

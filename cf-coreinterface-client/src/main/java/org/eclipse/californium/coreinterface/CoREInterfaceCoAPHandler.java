@@ -30,6 +30,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	private int stopCount;
 	private Condition notEnd;
 	private Lock lock;
+	private boolean exit = false;
 	
 	public CoREInterfaceCoAPHandler(int pmin, int pmax, int stopCount, String loggingfile, Condition notEnd, Lock lock){
 		this.notificationsCount = 0;
@@ -76,12 +77,12 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		if(response.getOptions().getObserve() == null){
 			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce without OBSERVE");
 			System.out.println(getNow() + "INFO - Received Responce without OBSERVE");
-			notificationsCount = stopCount;
+			setExit(true);
 
 		}
 		
 		timestampLast = timestamp;
-		if(notificationsCount >= stopCount){
+		if(notificationsCount >= stopCount || isExit()){
 			lock.lock();
 			notEnd.signal();
 			lock.unlock();
@@ -118,5 +119,11 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		Date now = new Date();
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSSS ");
 		return dateFormat.format(now);
+	}
+	public boolean isExit() {
+		return exit;
+	}
+	public void setExit(boolean exit) {
+		this.exit = exit;
 	}
 }

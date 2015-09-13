@@ -8,7 +8,8 @@ public class ReverseProxyMain {
 		ReverseProxy reverseProxy = null;
 		if(args.length > 0){
 			String config = args[0];
-			reverseProxy = new ReverseProxy(config);
+			String ip = args[1];
+			reverseProxy = new ReverseProxy(config, ip);
 		} else{
 			reverseProxy = new ReverseProxy();
 		}
