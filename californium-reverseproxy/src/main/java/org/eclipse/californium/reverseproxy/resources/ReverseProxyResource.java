@@ -954,7 +954,7 @@ public class ReverseProxyResource extends CoapResource {
 		public void run() {
 			while(observeEnabled.get()){
 				LOGGER.log(Level.INFO, "NotificationTask Run");
-				long delay = notificationPeriodMin;
+				long delay = notificationPeriodMax;
 				if(relation == null || relation.getCurrent() != null){
 					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberListCopy();
 					for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
@@ -978,12 +978,12 @@ public class ReverseProxyResource extends CoapResource {
 								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT - rtt);
 								deadlinewithout = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
 							}
-							System.out.println("RTT " + rtt);
+							/*System.out.println("RTT " + rtt);
 							System.out.println("timestamp " + timestamp);
 							System.out.println("next Interval " + nextInterval);
 							System.out.println("client RTT " + clientRTT);
 							System.out.println("deadline without rtt " + deadlinewithout );
-							System.out.println("deadline " + deadline);
+							System.out.println("deadline " + deadline);*/
 							if(timestamp >= nextInterval){
 								System.out.println("Time to send");
 								if(pr.getLastNotificationSent().equals(relation.getCurrent().advanced())){ //old notification
@@ -1001,7 +1001,7 @@ public class ReverseProxyResource extends CoapResource {
 							} else { // too early
 								System.out.println("Too early");
 								long nextawake = timestamp + delay;
-								System.out.println("next Awake " + nextawake);
+								//System.out.println("next Awake " + nextawake);
 								if(nextawake >= deadline){ // check if next awake will be to late
 									if(delay > (nextInterval - timestamp))
 										delay = (nextInterval - timestamp);
@@ -1083,7 +1083,7 @@ public class ReverseProxyResource extends CoapResource {
 	    		
 	    		
 	    		try {
-					Thread.sleep(PERIOD_RTT);
+					Thread.sleep(Math.max(PERIOD_RTT, notificationPeriodMin));
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
