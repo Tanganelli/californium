@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -82,6 +83,8 @@ public class ReverseProxyResource extends CoapResource {
 
 	long emulatedDelay;
 	
+	private AtomicInteger count;
+	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 //		LOGGER.setLevel(Level.ALL);
@@ -124,6 +127,7 @@ public class ReverseProxyResource extends CoapResource {
 		newNotification = lock.newCondition();
 		rttTask = new RttTask();
 		observeEnabled = new AtomicBoolean(false);
+		count = new AtomicInteger(0);
 	}
 	
 	@Override
@@ -305,6 +309,9 @@ public class ReverseProxyResource extends CoapResource {
 		this.rtt = rtt;
 	}
 
+	public void incrementCount(){
+		count.incrementAndGet();
+	}
 	/** 
 	 * Invoked by the Resource Observer handler when a client cancel an observe subscription.
 	 * 
@@ -1064,16 +1071,13 @@ public class ReverseProxyResource extends CoapResource {
 	public class RttTask implements Runnable {
 		
 		private static final int RENEW_COUNTER = 10;
-		private int count = 0;
-	    @Override
+		@Override
 	    public void run() {
 	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
-	    		if(count < RENEW_COUNTER){
-	    			count++;
+	    		if(count.get() % RENEW_COUNTER != 0){
 	    			updateRTT(evaluateRtt());
 	    		} else {
-	    			count = 0;
 	    			updateRTT(renewRegistration());
 	    		}
 	    		
