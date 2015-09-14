@@ -120,7 +120,7 @@ public class MulticastServer extends CoapServer{
     	private String time;
     	private int dataCf = TEXT_PLAIN;
     	private int notificationPeriod = 5; // 5 seconds as default
-    	private int maxAge = 5; // 5 seconds as default
+    	private int maxAge = 60; // 5 seconds as default
     	private DynamicTimeTask task;
     	private Lock lock;
     	private Condition newPeriod;
@@ -224,7 +224,7 @@ public class MulticastServer extends CoapServer{
 					}
 				}
         		notificationPeriod = (max_period + min_period) / 2 ;
-        		maxAge = max_period;
+        		//maxAge = max_period;
         		System.out.println("Notification Period = " + this.notificationPeriod);
         		System.out.println("Max Period = " + max_period);
         		System.out.println("Min Period = " + min_period);
