@@ -1062,12 +1062,21 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	public class RttTask implements Runnable {
+		
+		private static final int RENEW_COUNTER = 10;
+		private int count = 0;
 	    @Override
 	    public void run() {
 	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
+	    		if(count < RENEW_COUNTER){
+	    			count++;
+	    			updateRTT(evaluateRtt());
+	    		} else {
+	    			count = 0;
+	    			updateRTT(renewRegistration());
+	    		}
 	    		
-	    		updateRTT(renewRegistration());
 	    		
 	    		try {
 					Thread.sleep(PERIOD_RTT);
