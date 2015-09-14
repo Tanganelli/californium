@@ -1,13 +1,9 @@
 package org.eclipse.californium.reverseproxy.resources;
-import java.util.Collection;
 import java.util.Date;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
-import org.eclipse.californium.core.coap.OptionSet;
-import org.eclipse.californium.core.coap.Response;
-import org.eclipse.californium.reverseproxy.PeriodicRequest;
 
 /**
  * Response Handler for notifications coming from the end device.
@@ -33,7 +29,6 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		Date now = new Date();
 		long timestamp = now.getTime();
 		ownerResource.setTimestamp(timestamp);
-		ownerResource.incrementCount();
 		ownerResource.lock.lock();
 		ownerResource.newNotification.signalAll();
 		ownerResource.lock.unlock();
