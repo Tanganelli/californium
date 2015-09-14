@@ -967,18 +967,22 @@ public class ReverseProxyResource extends CoapResource {
 							long clientRTT = reverseProxy.getClientRTT(cl.getAddress(), cl.getPort());
 							long nextInterval = 0;
 							long deadline = 0;
+							long deadlinewithout = 0;
 							if(pr.getTimestampLastNotificationSent() == -1){
 								nextInterval = (timestamp + ((long)pr.getPmin()));
 								deadline = timestamp + ((long)pr.getPmax() - clientRTT - rtt);
+								deadlinewithout = timestamp + ((long)pr.getPmax() - clientRTT);
 							}
 							else{
 								nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
 								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT - rtt);
+								deadlinewithout = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
 							}
 							System.out.println("RTT " + rtt);
 							System.out.println("timestamp " + timestamp);
 							System.out.println("next Interval " + nextInterval);
 							System.out.println("client RTT " + clientRTT);
+							System.out.println("deadline without rtt " + deadlinewithout );
 							System.out.println("deadline " + deadline);
 							if(timestamp >= nextInterval){
 								System.out.println("Time to send");
