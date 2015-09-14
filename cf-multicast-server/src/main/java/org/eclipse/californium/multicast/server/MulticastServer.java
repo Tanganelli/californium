@@ -133,7 +133,7 @@ public class MulticastServer extends CoapServer{
             getAttributes().setTitle("CoRE Interface Resource");
             getAttributes().addResourceType("observe");
     		getAttributes().setObservable();
-    		setObserveType(Type.CON);
+    		setObserveType(Type.NON);
     		task = null;
     		lock = new ReentrantLock();
     		newPeriod = lock.newCondition();
