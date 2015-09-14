@@ -34,6 +34,7 @@ import org.eclipse.californium.core.coap.CoAP.Code;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.CoAP.Type;
 import org.eclipse.californium.core.network.Exchange;
+import org.eclipse.californium.core.network.Exchange.Origin;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.observe.ObserveRelation;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -78,6 +79,8 @@ public class ReverseProxyResource extends CoapResource {
 	private RttTask rttTask;
 
 	private AtomicBoolean observeEnabled;
+
+	long emulatedDelay;
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
@@ -528,7 +531,7 @@ public class ReverseProxyResource extends CoapResource {
 	//private void removeSubscriber(ClientEndpoint clientEndpoint) {
 	private synchronized void removeSubscriber(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "removeSubscriber(" + clientEndpoint + ")");
-		PeriodicRequest pr = this.subscriberList.remove(clientEndpoint);		
+		this.subscriberList.remove(clientEndpoint);		
 		dumpSubscribers();
 	}
 	
@@ -595,13 +598,9 @@ public class ReverseProxyResource extends CoapResource {
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		String uri = this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period;
-		/*CoapClient clientSet = new CoapClient();
-		clientSet.setURI(uri);
-		CoapResponse response = clientSet.put("", MediaTypeRegistry.TEXT_PLAIN);
-		LOGGER.info("Coap response received. - " + response);*/
 		Request request = new Request(Code.PUT, Type.CON);
 		request.setURI(uri);
-		request.send(this.getEndpoints().get(0));
+		request.send(reverseProxy.getUnicastEndpoint());
 		LOGGER.info("setObservingQos - " + request);
 		Response response;
 		long timeout = WAIT_FACTOR;
@@ -844,7 +843,7 @@ public class ReverseProxyResource extends CoapResource {
 				if (response != null) {
 					LOGGER.finer("Coap response received.");
 					// get RTO from the response
-					 rtt = response.getRemoteEndpoint().getCurrentRTO();
+					 rtt = response.getRemoteEndpoint().getCurrentRTO() + emulatedDelay;
 					break;
 				} else {
 					LOGGER.warning("No response received.");
@@ -976,6 +975,7 @@ public class ReverseProxyResource extends CoapResource {
 								nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
 								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT - rtt);
 							}
+							System.out.println("RTT " + rtt);
 							System.out.println("timestamp " + timestamp);
 							System.out.println("next Interval " + nextInterval);
 							System.out.println("client RTT " + clientRTT);
@@ -1066,8 +1066,8 @@ public class ReverseProxyResource extends CoapResource {
 	    public void run() {
 	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
-	    		//TODO 
-	    		//updateRTT(evaluateRtt());
+	    		
+	    		updateRTT(renewRegistration());
 	    		
 	    		try {
 					Thread.sleep(PERIOD_RTT);
@@ -1077,6 +1077,51 @@ public class ReverseProxyResource extends CoapResource {
 				}
 	    	}
 	    }
+
+		private long renewRegistration() {
+			Request refresh = Request.newGet();
+			refresh.setOptions(relation.getRequest().getOptions());
+			// make sure Observe is set and zero
+			refresh.setObserve();
+			// use same Token
+			refresh.setToken(relation.getRequest().getToken());
+			refresh.setDestination(relation.getRequest().getDestination());
+			refresh.setDestinationPort(relation.getRequest().getDestinationPort());
+			refresh.send(reverseProxy.getUnicastEndpoint());
+			LOGGER.info("Re-registering for " + relation.getRequest());
+			Response response;
+			long timeout = WAIT_FACTOR;
+			try {
+				while(timeout < 5*WAIT_FACTOR){
+					if(rtt == -1){
+						response = refresh.waitForResponse(5000 * timeout);
+					} else
+					{
+						response = refresh.waitForResponse(rtt * timeout);
+					}
+					// receive the response
+		
+					if (response != null) {
+						LOGGER.info("Coap response received. - " + response);
+
+						// get RTO from the response
+						
+						//TODO uncomment
+						return response.getRemoteEndpoint().getCurrentRTO();
+					} else {
+						LOGGER.warning("No response received.");
+						timeout += WAIT_FACTOR;
+					}
+				}
+				if(timeout == 5*WAIT_FACTOR){
+					LOGGER.warning("Observig cannot be set on remote endpoint.");
+				}
+			} catch (InterruptedException e) {
+				LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
+			}
+			return 0;
+		}
+		
 	}
 	
 }

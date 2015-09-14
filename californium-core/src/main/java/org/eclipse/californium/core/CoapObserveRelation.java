@@ -33,7 +33,15 @@ public class CoapObserveRelation {
 
 	/** The request. */
 	private Request request;
-	
+
+	public Request getRequest() {
+		return request;
+	}
+
+	public void setRequest(Request request) {
+		this.request = request;
+	}
+
 	/** Indicates whether the relation has been canceled. */
 	private boolean canceled = false;
 	

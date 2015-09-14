@@ -28,7 +28,7 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		LOGGER.info("new incoming notification");
 		ownerResource.getNotificationOrderer().getNextObserveNumber();
 		if(count==10)
-			ownerResource.updateRTT(11000);
+			ownerResource.emulatedDelay = 11000;
 		count++;
 		Date now = new Date();
 		long timestamp = now.getTime();
