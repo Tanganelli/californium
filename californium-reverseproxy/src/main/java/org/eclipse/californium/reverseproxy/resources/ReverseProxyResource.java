@@ -1073,13 +1073,13 @@ public class ReverseProxyResource extends CoapResource {
 	    public void run() {
 	    	while(observeEnabled.get()){
 	    		LOGGER.info("RttTask");
-	    		if(count < RENEW_COUNTER){
+	    		/*if(count < RENEW_COUNTER){
 	    			count++;
 	    			updateRTT(evaluateRtt());
 	    		} else {
 	    			count = 0;
 	    			updateRTT(renewRegistration());
-	    		}
+	    		}*/
 	    		
 	    		
 	    		try {
