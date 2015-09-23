@@ -63,6 +63,7 @@ public class CoREInterfcaceClient {
 		CoREInterfaceCoAPHandler handler = new CoREInterfaceCoAPHandler(pmin, pmax, stop, logFile, notEnd, lock);
 		
 		CoapClient client = new CoapClient();
+		client.setTimeout(0);
 		client.setURI(putUri);
 		if(ip != null){
 			try {
