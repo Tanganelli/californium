@@ -666,11 +666,11 @@ public class ReverseProxyResource extends CoapResource {
 		/*invalid.setAllowed(false);
 		addInvalidSubscriber(client, invalid);*/
 		
-		Response response = getLast(invalid.getOriginRequest(), invalid);
-		response.getOptions().removeObserve();
+		/*Response response = getLast(invalid.getOriginRequest(), invalid);
+		response.getOptions().removeObserve();*/
 		ObserveRelation rel = invalid.getExchange().advanced().getRelation();
 		invalid.getExchange().advanced().setRelation(null);
-		invalid.getExchange().respond(response);
+		//invalid.getExchange().respond(response);
 		rel.cancel();
 		removeSubscriber(client);
 	}
