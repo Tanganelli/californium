@@ -76,24 +76,29 @@ public class CoREInterfcaceClient {
 		}
 		
 		response = client.put("", MediaTypeRegistry.UNDEFINED);
-		if(response.getCode() == ResponseCode.CHANGED)
-		{
-			client.setURI(uri);
-			CoapObserveRelation relation = client.observe(handler);
-			try {
-				lock.lock();
-				while(handler.getNotificationsCount() < stop && !handler.isExit())
-					notEnd.await();
-				
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} finally {
-				lock.unlock();
+		try{
+			if(response.getCode() == ResponseCode.CHANGED)
+			{
+				client.setURI(uri);
+				CoapObserveRelation relation = client.observe(handler);
+				try {
+					lock.lock();
+					while(handler.getNotificationsCount() < stop && !handler.isExit())
+						notEnd.await();
+					
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} finally {
+					lock.unlock();
+				}
+				relation.proactiveCancel();
+				LOGGER.info("Missed Deadlines: "+ handler.getMissDeadlines() + ", Missed Gaps: "+ handler.getMissGaps() +", TotalNotifications: "+ handler.getNotificationsCount());
+				System.out.println(getNow() + "INFO - Missed Deadlines: "+ handler.getMissDeadlines() + ", TotalNotifications: "+ handler.getNotificationsCount());
 			}
-			relation.proactiveCancel();
-			LOGGER.info("Missed Deadlines: "+ handler.getMissDeadlines() + ", Missed Gaps: "+ handler.getMissGaps() +", TotalNotifications: "+ handler.getNotificationsCount());
-			System.out.println(getNow() + "INFO - Missed Deadlines: "+ handler.getMissDeadlines() + ", TotalNotifications: "+ handler.getNotificationsCount());
+		} catch (NullPointerException e)
+		{
+			e.printStackTrace();
 		}
 		System.exit(0);
 	}
