@@ -584,7 +584,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return the Error ResponseCode or null if success.
 	 */
-	private synchronized void setObservingQoS() {
+	private void setObservingQoS() {
 		LOGGER.log(Level.INFO, "setObserving()");
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
@@ -1046,6 +1046,7 @@ public class ReverseProxyResource extends CoapResource {
 				responseForClients.setDestination(cl.getAddress());
 				responseForClients.setDestinationPort(cl.getPort());
 				responseForClients.setToken(pr.getOriginRequest().getToken());
+				
 				pr.getExchange().respond(responseForClients);
 			} else {
 				LOGGER.severe("Response no more valid");
