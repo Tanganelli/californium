@@ -283,7 +283,9 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.FINER, "setTimestamp(" + timestamp + ")");
 		relation.getCurrent().advanced().setTimestamp(timestamp);
 		// Update also Max Age to consider Server RTT
-		relation.getCurrent().advanced().getOptions().setMaxAge(relation.getCurrent().advanced().getOptions().getMaxAge() - (rtt * 1000));
+		LOGGER.info("MAX-AGE " + relation.getCurrent().advanced().getOptions().getMaxAge().toString());
+		LOGGER.info("RTT " + rtt);
+		relation.getCurrent().advanced().getOptions().setMaxAge(relation.getCurrent().advanced().getOptions().getMaxAge() - (rtt / 1000));
 	}
 	
 	public long getRtt() {
