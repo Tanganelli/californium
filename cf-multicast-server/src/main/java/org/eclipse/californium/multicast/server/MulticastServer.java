@@ -120,7 +120,7 @@ public class MulticastServer extends CoapServer{
     	private String time;
     	private int dataCf = TEXT_PLAIN;
     	private int notificationPeriod = 5; // 5 seconds as default
-    	private int maxAge = 60; // 5 seconds as default
+    	private int maxAge = 60; // 60 seconds as default
     	private DynamicTimeTask task;
     	private Lock lock;
     	private Condition newPeriod;
@@ -154,6 +154,7 @@ public class MulticastServer extends CoapServer{
 	
 	    			// Call changed to notify subscribers
 	    			changed();
+	    			//notifyObserverRelations();
 	    			LOGGER.info("Send Notification");
 	    			lock.lock();
 	    			try {
