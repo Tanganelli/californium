@@ -665,13 +665,14 @@ public class ReverseProxyResource extends CoapResource {
 		PeriodicRequest invalid = getSubscriberCopy(client);
 		/*invalid.setAllowed(false);
 		addInvalidSubscriber(client, invalid);*/
-		removeSubscriber(client);
-		Response response = getLast(invalid.getOriginRequest(), invalid);
-		response.getOptions().removeObserve();
+		
+		/*Response response = getLast(invalid.getOriginRequest(), invalid);
+		response.getOptions().removeObserve();*/
 		ObserveRelation rel = invalid.getExchange().advanced().getRelation();
 		invalid.getExchange().advanced().setRelation(null);
-		invalid.getExchange().respond(response);
+		//invalid.getExchange().respond(response);
 		rel.cancel();
+		removeSubscriber(client);
 	}
 
 //	private synchronized void addInvalidSubscriber(ClientEndpoint client,
