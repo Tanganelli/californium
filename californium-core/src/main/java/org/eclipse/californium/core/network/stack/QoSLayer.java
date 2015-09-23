@@ -10,6 +10,7 @@ import org.eclipse.californium.core.network.stack.congestioncontrol.Cocoa;
 import org.eclipse.californium.core.network.stack.congestioncontrol.CocoaStrong;
 import org.eclipse.californium.core.network.stack.congestioncontrol.LinuxRto;
 import org.eclipse.californium.core.network.stack.congestioncontrol.PeakhopperRto;
+import org.eclipse.californium.core.network.stack.congestioncontrol.QoSCocoa;
 
 public abstract class QoSLayer extends CongestionControlLayer {
 
@@ -28,6 +29,7 @@ public abstract class QoSLayer extends CongestionControlLayer {
 	 */
 	@Override
 	public void sendRequest(Exchange exchange, Request request) {
+		LOGGER.info("QoSLayer - sendRequest");
 		super.sendRequest(exchange, request);
 	}
 
@@ -41,32 +43,26 @@ public abstract class QoSLayer extends CongestionControlLayer {
 	 */
 	@Override
 	public void sendResponse(Exchange exchange, Response response) {
+		LOGGER.info("QoSLayer - sendResponse");
 		super.sendResponse(exchange, response);
 	}
 	
 	@Override
 	public void receiveResponse(Exchange exchange, Response response) {
 		//FIXME decide where to put the setRemoteEndpoint, here or inside RemoteEndpointManager?
+		LOGGER.info("QoSLayer - receiveResponse");
 		response.setRemoteEndpoint(getRemoteEndpoint(exchange));
 		super.receiveResponse(exchange, response);
 	}
 	
 	
-	/*public static QoSLayer newImplementation(NetworkConfig config) {
+	public static QoSLayer newImplementation(NetworkConfig config) {
 		final String implementation = config.getString(NetworkConfigDefaults.CONGESTION_CONTROL_ALGORITHM);
 		if ("Cocoa".equals(implementation))
-			return new Cocoa(config);
-		else if ("CocoaStrong".equals(implementation))
-			return new CocoaStrong(config);
-		else if ("BasicRto".equals(implementation))
-			return new BasicRto(config);
-		else if ("LinuxRto".equals(implementation))
-			return new LinuxRto(config);
-		else if ("PeakhopperRto".equals(implementation))
-			return new PeakhopperRto(config);
+			return new QoSCocoa(config);
 		else {
 			LOGGER.config("Unknown CONGESTION_CONTROL_ALGORITHM (" + implementation + "), using Cocoa");
-			return new Cocoa(config);
+			return new QoSCocoa(config);
 		}
-	}*/
+	}
 }
