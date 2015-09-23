@@ -79,22 +79,12 @@ public class ReverseProxyResource extends CoapResource {
 	private RttTask rttTask;
 
 	private AtomicBoolean observeEnabled;
+	private AtomicBoolean sendEvaluateRtt;
 
 	long emulatedDelay;
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
-//		LOGGER.setLevel(Level.ALL);
-//		System.out.println(LOGGER.getHandlers());
-//		for(Handler h : LOGGER.getHandlers()){
-//			System.out.println(h.getClass() + " - "+ h.getLevel().getLocalizedName());
-//			h.setLevel(Level.ALL);
-//			System.out.println(h.getClass() + " - "+ h.getLevel().getLocalizedName());
-//		}
-//		LOGGER.info("INFO");
-//		LOGGER.fine("FINE");
-//		LOGGER.finer("FINER");
-//		LOGGER.finest("FINEST");
 		this.uri = uri;
 		this.rtt = -1;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
@@ -124,6 +114,7 @@ public class ReverseProxyResource extends CoapResource {
 		newNotification = lock.newCondition();
 		rttTask = new RttTask();
 		observeEnabled = new AtomicBoolean(false);
+		sendEvaluateRtt = new AtomicBoolean(true);
 	}
 	
 	@Override
@@ -285,16 +276,14 @@ public class ReverseProxyResource extends CoapResource {
 		responseForClients.setDestination(request.getSource());
 		responseForClients.setDestinationPort(request.getSourcePort());
 		responseForClients.setToken(request.getToken());
-		responseForClients.getOptions().setObserve(notification.getOptions().getObserve());
-		//TODO: correct this
-		//responseForClients.getOptions().setMaxAge(pr.getPmax() / 1000);
-		responseForClients.getOptions().setMaxAge((pr.getPmax() / 1000) + 1000);
 		return responseForClients;
 	}
 	
 	public void setTimestamp(long timestamp) {
 		LOGGER.log(Level.FINER, "setTimestamp(" + timestamp + ")");
 		relation.getCurrent().advanced().setTimestamp(timestamp);
+		// Update also Max Age to consider Server RTT
+		relation.getCurrent().advanced().getOptions().setMaxAge(relation.getCurrent().advanced().getOptions().getMaxAge() - (rtt * 1000));
 	}
 	
 	public long getRtt() {
@@ -593,7 +582,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return the Error ResponseCode or null if success.
 	 */
-	private void setObservingQoS() {
+	private synchronized void setObservingQoS() {
 		LOGGER.log(Level.INFO, "setObserving()");
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
@@ -607,7 +596,7 @@ public class ReverseProxyResource extends CoapResource {
 		try {
 			while(timeout < 5*WAIT_FACTOR){
 				if(rtt == -1){
-					response = request.waitForResponse(5000 * timeout);
+					response = request.waitForResponse(500 * timeout);
 				} else
 				{
 					response = request.waitForResponse(rtt * timeout);
@@ -827,31 +816,35 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.INFO, "evaluateRtt()");
 		Request request = new Request(Code.GET, Type.CON);
 		request.setURI(this.uri);
-		request.send(this.getEndpoints().get(0));
 		long rtt = this.rtt;
-		long timeout = WAIT_FACTOR;
-		Response response;
-		try {
-			while(timeout < 5*WAIT_FACTOR){
-				if(rtt == -1){
-					response = request.waitForResponse(5000 * timeout);
-				} else
-				{
-					response = request.waitForResponse(rtt * timeout);
+		if(sendEvaluateRtt.compareAndSet(true, false)) // only one message
+		{
+			request.send(this.getEndpoints().get(0));
+			long timeout = WAIT_FACTOR;
+			Response response;
+			try {
+				while(timeout < 5*WAIT_FACTOR){
+					if(rtt == -1){
+						response = request.waitForResponse(5000 * timeout);
+					} else
+					{
+						response = request.waitForResponse(rtt * timeout);
+					}
+		
+					if (response != null) {
+						LOGGER.finer("Coap response received.");
+						// get RTO from the response
+						 rtt = response.getRemoteEndpoint().getCurrentRTO() + emulatedDelay;
+						break;
+					} else {
+						LOGGER.warning("No response received.");
+						timeout += WAIT_FACTOR;
+					}
 				}
-	
-				if (response != null) {
-					LOGGER.finer("Coap response received.");
-					// get RTO from the response
-					 rtt = response.getRemoteEndpoint().getCurrentRTO() + emulatedDelay;
-					break;
-				} else {
-					LOGGER.warning("No response received.");
-					timeout += WAIT_FACTOR;
-				}
+			} catch (InterruptedException e) {
+				LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
 			}
-		} catch (InterruptedException e) {
-			LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
+			sendEvaluateRtt.set(true);
 		}
 		return rtt;
 	}	
@@ -967,16 +960,13 @@ public class ReverseProxyResource extends CoapResource {
 							long clientRTT = reverseProxy.getClientRTT(cl.getAddress(), cl.getPort());
 							long nextInterval = 0;
 							long deadline = 0;
-							long deadlinewithout = 0;
 							if(pr.getTimestampLastNotificationSent() == -1){
 								nextInterval = (timestamp + ((long)pr.getPmin()));
-								deadline = timestamp + ((long)pr.getPmax() - clientRTT - rtt);
-								deadlinewithout = timestamp + ((long)pr.getPmax() - clientRTT);
+								deadline = timestamp + ((long)pr.getPmax() - clientRTT);
 							}
 							else{
 								nextInterval = (pr.getTimestampLastNotificationSent() + ((long)pr.getPmin()));
-								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT - rtt);
-								deadlinewithout = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
+								deadline = pr.getTimestampLastNotificationSent() + ((long)pr.getPmax() - clientRTT);
 							}
 							/*System.out.println("RTT " + rtt);
 							System.out.println("timestamp " + timestamp);
@@ -991,8 +981,8 @@ public class ReverseProxyResource extends CoapResource {
 									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
 										delay = (deadline - timestamp);
 									//System.out.println("Delay " + delay);
-									if((deadline - timestamp) < 0) 
-										sendValidated(cl, pr, timestamp);
+									//if((deadline - timestamp) < 0) 
+										//sendValidated(cl, pr, timestamp);
 									
 								} else{
 									System.out.println("New notification");
@@ -1003,8 +993,8 @@ public class ReverseProxyResource extends CoapResource {
 								long nextawake = timestamp + delay;
 								//System.out.println("next Awake " + nextawake);
 								if(nextawake >= deadline){ // check if next awake will be to late
-									if(delay > (nextInterval - timestamp))
-										delay = (nextInterval - timestamp);
+									if(delay > (deadline - timestamp))
+										delay = (deadline - timestamp);
 								}
 								//System.out.println("Delay " + delay);
 							}
@@ -1033,16 +1023,16 @@ public class ReverseProxyResource extends CoapResource {
 		 */
 		private void sendValidated(ClientEndpoint cl, PeriodicRequest pr, long timestamp) {
 			LOGGER.log(Level.FINER, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
-			long timestampResponse = relation.getCurrent().advanced().getTimestamp();
+			long timestampResponse = relation.getCurrent().advanced().getTimestamp(); 
 			Response response = relation.getCurrent().advanced();
-			long maxAge = relation.getCurrent().advanced().getOptions().getMaxAge() * 1000; //convert to milliseconds
+			long maxAge = response.getOptions().getMaxAge();
 			
-			if(timestampResponse + maxAge > timestamp){
+			if(timestampResponse + (maxAge * 1000) > timestamp){ //already take into account the rtt experimented by the notification
 				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
 				updateSubscriberNotification(cl, timestamp, response);
 				Response responseForClients = new Response(response.getCode());
 				// copy payload
-				byte[] payload = relation.getCurrent().advanced().getPayload();
+				byte[] payload = response.getPayload();
 				responseForClients.setPayload(payload);
 	
 				// copy the timestamp
@@ -1050,13 +1040,10 @@ public class ReverseProxyResource extends CoapResource {
 	
 				// copy every option
 				responseForClients.setOptions(new OptionSet(
-						relation.getCurrent().advanced().getOptions()));
-				//TODO correct this
-				responseForClients.getOptions().setMaxAge((pr.getPmax() / 1000) + 1000);
+						response.getOptions()));
 				responseForClients.setDestination(cl.getAddress());
 				responseForClients.setDestinationPort(cl.getPort());
 				responseForClients.setToken(pr.getOriginRequest().getToken());
-				responseForClients.getOptions().setObserve(relation.getCurrent().getOptions().getObserve());
 				pr.getExchange().respond(responseForClients);
 			} else {
 				LOGGER.severe("Response no more valid");
