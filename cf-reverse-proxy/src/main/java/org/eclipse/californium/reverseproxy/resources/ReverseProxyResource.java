@@ -541,7 +541,7 @@ public class ReverseProxyResource extends CoapResource {
 	//public Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 	public synchronized Map<ClientEndpoint, PeriodicRequest> getSubscriberListCopy() {
 		LOGGER.log(Level.FINER, "getSubscriberList()");
-		/*Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
+		Map<ClientEndpoint, PeriodicRequest> tmp = new HashMap<ClientEndpoint, PeriodicRequest>();
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
 			ClientEndpoint cl = new ClientEndpoint(entry.getKey().getAddress(), entry.getKey().getPort());
 			PeriodicRequest pr = new PeriodicRequest();
@@ -556,14 +556,14 @@ public class ReverseProxyResource extends CoapResource {
 			pr.setResponseCode(entry.getValue().getResponseCode());
 			tmp.put(cl, pr);
 		}
-		return tmp;*/
-		return this.subscriberList;
+		return tmp;
+		//return this.subscriberList;
 	}
 	
 	//private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "getSubscriberCopy(" + clientEndpoint + ")");
-		/*PeriodicRequest origin;
+		PeriodicRequest origin;
 		if(this.subscriberList.containsKey(clientEndpoint))
 			origin = this.subscriberList.get(clientEndpoint);
 		else
@@ -578,8 +578,8 @@ public class ReverseProxyResource extends CoapResource {
 		pr.setPmin(origin.getPmin());
 		pr.setTimestampLastNotificationSent(origin.getTimestampLastNotificationSent());
 		pr.setResponseCode(origin.getResponseCode());
-		return pr;*/
-		return this.subscriberList.get(clientEndpoint);
+		return pr;
+		//return this.subscriberList.get(clientEndpoint);
 	}
 
 	/**
