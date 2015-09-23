@@ -54,6 +54,11 @@ public class CoAP {
 	/** The CoAP charset is always UTF-8 */
 	public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 	
+	/* QOS */
+	//TODO find a better place
+	public static final String MINIMUM_PERIOD = "pmin";
+	public static final String MAXIMUM_PERIOD = "pmax";
+	
 	private CoAP() {
 		// prevent initialization
 	}

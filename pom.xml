@@ -91,6 +91,9 @@
 		<module>cf-secure</module>
 		<module>cf-proxy</module>
 		<module>cf-benchmark</module>
+		<module>cf-reverse-proxy</module>
+		<module>cf-coreinterface-client</module>
+		<module>cf-multicast-server</module>
 	</modules>
 	
 	<distributionManagement>
