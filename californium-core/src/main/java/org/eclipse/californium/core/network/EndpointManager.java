@@ -266,7 +266,6 @@ public class EndpointManager {
 	public static class DaemonThreadFactory implements ThreadFactory {
 	    public Thread newThread(Runnable r) {
 	        Thread thread = new Thread(r);
-	        thread.setName("ExecutorThread" + thread.getName());
 	        thread.setDaemon(true);
 	        return thread;
 	    }

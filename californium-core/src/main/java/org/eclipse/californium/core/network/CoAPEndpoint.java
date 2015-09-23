@@ -390,22 +390,16 @@ public class CoAPEndpoint implements Endpoint {
 		// TODO: If the currently executing thread is not a thread of the
 		// executor, a new task on the executor should be created to send the
 		// response. (Just uncomment this code)
-		if (Thread.currentThread().getName().startsWith("ExecutorThread")) {
-			LOGGER.info("Executor Thread");
-			coapstack.sendResponse(exchange, response);
-		} else {
-			LOGGER.info("NOT Executor Thread - create new Thread");
-			executor.execute(new Runnable() {
-				public void run() {
-					try {
-						coapstack.sendResponse(exchange, response);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			});
-		}
-		
+//		executor.execute(new Runnable() {
+//			public void run() {
+//				try {
+//					coapstack.sendResponse(exchange, response);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		});
+		coapstack.sendResponse(exchange, response);
 	}
 	
 	/* (non-Javadoc)
