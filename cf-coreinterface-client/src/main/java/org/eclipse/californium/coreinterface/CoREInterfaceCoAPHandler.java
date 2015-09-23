@@ -72,7 +72,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 			maxAgeLast = response.getOptions().getMaxAge();
 		}
 		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast) +
-				", Max-Age defference: " + (timestamp - (timestampLast + (maxAgeLast * 1000))));
+				", Max-Age defference: " + ((timestampLast + (maxAgeLast * 1000)) - timestamp) / 1000);
 		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		
 		if(timestamp > timestampLast + pmax){
