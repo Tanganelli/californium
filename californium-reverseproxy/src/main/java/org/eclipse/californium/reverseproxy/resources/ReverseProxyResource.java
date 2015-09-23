@@ -213,15 +213,20 @@ public class ReverseProxyResource extends CoapResource {
 					rttExecutor.submit(rttTask);
 				}else{
 					//reply to client
-					Response responseForClients = getLast(request, pr);
-					//save lastNotification for the client
 					Date now = new Date();
 					long timestamp = now.getTime();
-					updateSubscriberNotification(new ClientEndpoint(request.getSource(), request.getSourcePort()), timestamp, relation.getCurrent().advanced());
-					exchange.respond(responseForClients);
-					lock.lock();
-					newNotification.signalAll();
-					lock.unlock();
+					long elapsed = timestamp - pr.getTimestampLastNotificationSent();
+					if(pr.getPmin() <= elapsed || pr.getTimestampLastNotificationSent() == -1)
+					{
+						Response responseForClients = getLast(request, pr);
+						//save lastNotification for the client
+						updateSubscriberNotification(new ClientEndpoint(request.getSource(), request.getSourcePort()), timestamp, relation.getCurrent().advanced());
+						exchange.respond(responseForClients);
+						lock.lock();
+						newNotification.signalAll();
+						lock.unlock();
+					}
+					
 				}
 			}
 			else if(res == ResponseCode.FORBIDDEN){
@@ -945,6 +950,7 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private class NotificationTask implements Runnable{
 
+		private boolean to_change = true;
 		@Override
 		public void run() {
 			while(observeEnabled.get()){
@@ -988,7 +994,10 @@ public class ReverseProxyResource extends CoapResource {
 									
 								} else{
 									System.out.println("New notification");
-									sendValidated(cl, pr, timestamp);
+									if(to_change)
+										sendValidated(cl, pr, timestamp);
+									to_change = false;
+									
 								}
 							} else { // too early
 								System.out.println("Too early");
@@ -1004,6 +1013,7 @@ public class ReverseProxyResource extends CoapResource {
 							
 					}
 				}
+				to_change = true;
 				LOGGER.info("Delay " + delay);
 				try {
 					lock.lock();
@@ -1031,7 +1041,7 @@ public class ReverseProxyResource extends CoapResource {
 			
 			if(timestampResponse + (maxAge * 1000) > timestamp){ //already take into account the rtt experimented by the notification
 				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
-				updateSubscriberNotification(cl, timestamp, response);
+				/*updateSubscriberNotification(cl, timestamp, response);
 				Response responseForClients = new Response(response.getCode());
 				// copy payload
 				byte[] payload = response.getPayload();
@@ -1047,7 +1057,9 @@ public class ReverseProxyResource extends CoapResource {
 				responseForClients.setDestinationPort(cl.getPort());
 				responseForClients.setToken(pr.getOriginRequest().getToken());
 				
-				pr.getExchange().respond(responseForClients);
+				pr.getExchange().respond(responseForClients);*/
+				changed();
+				
 			} else {
 				LOGGER.severe("Response no more valid");
 			}

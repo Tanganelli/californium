@@ -57,7 +57,6 @@ public abstract class QoSLayer extends CongestionControlLayer {
 	
 	
 	public static QoSLayer newImplementation(NetworkConfig config) {
-		LOGGER.info("QoSLayer - newImplementation");
 		final String implementation = config.getString(NetworkConfigDefaults.CONGESTION_CONTROL_ALGORITHM);
 		if ("Cocoa".equals(implementation))
 			return new QoSCocoa(config);
