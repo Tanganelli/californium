@@ -24,7 +24,9 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	
 	private int notificationsCount;
 	private int missDeadlines;
+	private int missGaps;
 	private long timestampLast;
+	private long maxAgeLast;
 	private int pmin;
 	private int pmax;
 	private int stopCount;
@@ -35,7 +37,9 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	public CoREInterfaceCoAPHandler(int pmin, int pmax, int stopCount, String loggingfile, Condition notEnd, Lock lock){
 		this.notificationsCount = 0;
 		this.missDeadlines = 0;
+		this.setMissGaps(0);
 		this.timestampLast = -1;
+		this.maxAgeLast = -1;
 		this.pmin = pmin * 1000;
 		this.pmax = pmax * 1000;
 		this.stopCount = stopCount;
@@ -65,13 +69,22 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		}
 		if(timestampLast == -1){
 			timestampLast = timestamp;
+			maxAgeLast = response.getOptions().getMaxAge();
 		}
-		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast) +
+				", Max-Age defference: " + (timestamp - (timestampLast + (maxAgeLast * 1000))));
 		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
+		}
+		
+		if(timestamp > timestampLast + (maxAgeLast * 1000)){
+			LOGGER.severe("Client (" + pmin + "-" + pmax + ") GAP discovered, delay= " + (timestamp - (timestampLast + (maxAgeLast * 1000))) + " ms");
+			System.out.println(getNow() + "ERROR - GAP discovered, delay= " + (timestamp - (timestampLast +  (maxAgeLast * 1000))) + " ms");
+			setMissGaps(getMissGaps() + 1);
 		}
 		
 		if(response.getOptions().getObserve() == null){
@@ -82,6 +95,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		}
 		
 		timestampLast = timestamp;
+		maxAgeLast = response.getOptions().getMaxAge();
 		if(notificationsCount >= stopCount || isExit()){
 			lock.lock();
 			notEnd.signal();
@@ -125,5 +139,11 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 	}
 	public void setExit(boolean exit) {
 		this.exit = exit;
+	}
+	public int getMissGaps() {
+		return missGaps;
+	}
+	public void setMissGaps(int missGaps) {
+		this.missGaps = missGaps;
 	}
 }
