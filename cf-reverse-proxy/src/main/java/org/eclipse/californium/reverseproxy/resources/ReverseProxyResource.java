@@ -88,8 +88,7 @@ public class ReverseProxyResource extends CoapResource {
 		this.uri = uri;
 		this.rtt = 500;
 		subscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
-		//invalidSubscriberList = new HashMap<ClientEndpoint, PeriodicRequest>();
-		
+	
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
@@ -222,9 +221,9 @@ public class ReverseProxyResource extends CoapResource {
 						//save lastNotification for the client
 						updateSubscriberNotification(new ClientEndpoint(request.getSource(), request.getSourcePort()), timestamp, relation.getCurrent().advanced());
 						exchange.respond(responseForClients);
-						lock.lock();
+						/*lock.lock();
 						newNotification.signalAll();
-						lock.unlock();
+						lock.unlock();*/
 					}
 					
 				}
@@ -957,7 +956,10 @@ public class ReverseProxyResource extends CoapResource {
 				LOGGER.log(Level.INFO, "NotificationTask Run");
 				long delay = notificationPeriodMax;
 				if(relation == null || relation.getCurrent() != null){
+					Response notification = relation.getCurrent().advanced();
+					LOGGER.info("BEFORE");
 					Map<ClientEndpoint, PeriodicRequest> tmp = getSubscriberListCopy();
+					LOGGER.info("AFTER");
 					for(Entry<ClientEndpoint, PeriodicRequest> entry : tmp.entrySet()){
 						PeriodicRequest pr = entry.getValue();
 						ClientEndpoint cl = entry.getKey();
@@ -984,7 +986,7 @@ public class ReverseProxyResource extends CoapResource {
 							System.out.println("deadline " + deadline);*/
 							if(timestamp >= nextInterval){
 								System.out.println("Time to send");
-								if(pr.getLastNotificationSent().equals(relation.getCurrent().advanced())){ //old notification
+								if(pr.getLastNotificationSent().equals(notification)){ //old notification
 									System.out.println("Old Notification");
 									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
 										delay = (deadline - timestamp);
@@ -995,7 +997,7 @@ public class ReverseProxyResource extends CoapResource {
 								} else{
 									System.out.println("New notification");
 									if(to_change)
-										sendValidated(cl, pr, timestamp);
+										sendValidated(timestamp, notification);
 									to_change = false;
 									
 								}
@@ -1033,31 +1035,13 @@ public class ReverseProxyResource extends CoapResource {
 		 * @param pr PeriodicRequest  to reply to
 		 * @param timestamp the timestamp
 		 */
-		private void sendValidated(ClientEndpoint cl, PeriodicRequest pr, long timestamp) {
-			LOGGER.log(Level.FINER, "sendValidated("+ cl+", "+pr+", "+timestamp+")");
-			long timestampResponse = relation.getCurrent().advanced().getTimestamp(); 
-			Response response = relation.getCurrent().advanced();
+		private void sendValidated(long timestamp, Response response) {
+			LOGGER.log(Level.FINER, "sendValidated");
+			long timestampResponse = response.getTimestamp(); 
 			long maxAge = response.getOptions().getMaxAge();
 			
 			if(timestampResponse + (maxAge * 1000) > timestamp){ //already take into account the rtt experimented by the notification
-				LOGGER.info("sendValidated to be sent("+ cl+", "+pr+", "+timestamp+")");
-				/*updateSubscriberNotification(cl, timestamp, response);
-				Response responseForClients = new Response(response.getCode());
-				// copy payload
-				byte[] payload = response.getPayload();
-				responseForClients.setPayload(payload);
-	
-				// copy the timestamp
-				responseForClients.setTimestamp(timestamp);
-	
-				// copy every option
-				responseForClients.setOptions(new OptionSet(
-						response.getOptions()));
-				responseForClients.setDestination(cl.getAddress());
-				responseForClients.setDestinationPort(cl.getPort());
-				responseForClients.setToken(pr.getOriginRequest().getToken());
-				
-				pr.getExchange().respond(responseForClients);*/
+				LOGGER.info("sendValidated to be sent");
 				changed();
 				
 			} else {
