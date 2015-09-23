@@ -232,6 +232,7 @@ public class ReverseProxyResource extends CoapResource {
 			else if(res == ResponseCode.FORBIDDEN){
 				Response response = getLast(request, getSubscriberCopy(new ClientEndpoint(request.getSource(), request.getSourcePort())));
 				response.getOptions().removeObserve();
+				response.setType(Type.NON);
 				exchange.respond(response);
 			} else {
 				exchange.respond(res);
@@ -671,11 +672,12 @@ public class ReverseProxyResource extends CoapResource {
 		/*invalid.setAllowed(false);
 		addInvalidSubscriber(client, invalid);*/
 		
-		/*Response response = getLast(invalid.getOriginRequest(), invalid);
-		response.getOptions().removeObserve();*/
+		Response response = getLast(invalid.getOriginRequest(), invalid);
+		response.getOptions().removeObserve();
+		response.setType(Type.NON);
 		ObserveRelation rel = invalid.getExchange().advanced().getRelation();
 		invalid.getExchange().advanced().setRelation(null);
-		//invalid.getExchange().respond(response);
+		invalid.getExchange().respond(response);
 		rel.cancel();
 		subscriberList.removeSubscriber(client);
 	}
