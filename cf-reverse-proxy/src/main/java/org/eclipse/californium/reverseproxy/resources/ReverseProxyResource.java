@@ -566,7 +566,7 @@ public class ReverseProxyResource extends CoapResource {
 	}*/
 	
 	//private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
-	private synchronized PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
+	private PeriodicRequest getSubscriberCopy(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "getSubscriberCopy(" + clientEndpoint + ")");
 		PeriodicRequest origin = null;
 		for(Entry<ClientEndpoint, PeriodicRequest> entry : subscriberList)
@@ -669,16 +669,13 @@ public class ReverseProxyResource extends CoapResource {
 	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
 		PeriodicRequest invalid = getSubscriberCopy(client);
-		/*invalid.setAllowed(false);
-		addInvalidSubscriber(client, invalid);*/
 		
 		Response response = getLast(invalid.getOriginRequest(), invalid);
 		response.getOptions().removeObserve();
 		response.setType(Type.NON);
 		ObserveRelation rel = invalid.getExchange().advanced().getRelation();
-		invalid.getExchange().advanced().setRelation(null);
-		invalid.getExchange().respond(response);
 		rel.cancel();
+		invalid.getExchange().advanced().sendResponse(response);
 		subscriberList.removeSubscriber(client);
 	}
 	
@@ -749,7 +746,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @return true if success, false otherwise.
 	 */
 	//private ScheduleResults schedule(){
-	private synchronized ScheduleResults schedule(){
+	private ScheduleResults schedule(){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
