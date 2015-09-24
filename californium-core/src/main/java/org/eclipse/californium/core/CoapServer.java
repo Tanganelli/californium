@@ -145,10 +145,13 @@ public class CoapServer implements ServerInterface {
 		
 		// resources
 		this.root = createRoot();
-		if (config.getBoolean(NetworkConfig.Keys.USE_QOS) == true) {
+		if (this.config.getBoolean(NetworkConfig.Keys.USE_QOS) == true) {
+			LOGGER.info("USE QOS");
 			this.deliverer = new QoSServerMessageDeliverer(root);
-		} else
+		} else{
+			LOGGER.info("NOT USE QOS");
 			this.deliverer = new ServerMessageDeliverer(root);
+		}
 		
 		CoapResource well_known = new CoapResource(".well-known");
 		well_known.setVisible(false);

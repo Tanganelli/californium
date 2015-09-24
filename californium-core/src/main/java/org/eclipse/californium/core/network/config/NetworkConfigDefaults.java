@@ -63,6 +63,7 @@ public class NetworkConfigDefaults {
 		
 		config.setBoolean(NetworkConfig.Keys.USE_CONGESTION_CONTROL, false);
 		config.setString(NetworkConfig.Keys.CONGESTION_CONTROL_ALGORITHM, "Cocoa"); // see org.eclipse.californium.core.network.stack.congestioncontrol
+		config.setBoolean(NetworkConfig.Keys.USE_QOS, false);
 		
 		config.setInt(NetworkConfig.Keys.PROTOCOL_STAGE_THREAD_COUNT, CORES);
 		config.setInt(NetworkConfig.Keys.NETWORK_STAGE_RECEIVER_THREAD_COUNT, WINDOWS ? CORES : 1);
