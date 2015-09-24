@@ -208,7 +208,6 @@ public class ReverseProxyResource extends CoapResource {
 				QoSParameters pr = pending.get(cEp);
 				ep.setPmax(pr.getPmax());
 				ep.setPmin(pr.getPmin());
-				//pending.remove(cEp);
 			}
 			else
 				res = ResponseCode.CONTENT;
@@ -345,7 +344,7 @@ public class ReverseProxyResource extends CoapResource {
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
 		if(clientEndpoint != null){
-		
+			pending.remove(clientEndpoint);
 			if(this.getObserveRelations().getSize() == 0){
 				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
