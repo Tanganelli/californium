@@ -2,10 +2,7 @@ package org.eclipse.californium.reverseproxy.resources;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,18 +14,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapObserveRelation;
 import org.eclipse.californium.core.CoapResource;
-import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
-import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.OptionSet;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
@@ -36,15 +29,12 @@ import org.eclipse.californium.core.coap.CoAP.Code;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.CoAP.Type;
 import org.eclipse.californium.core.network.Exchange;
-import org.eclipse.californium.core.network.Exchange.Origin;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.observe.ObserveRelation;
-import org.eclipse.californium.core.observe.ObserveRelationContainer;
 import org.eclipse.californium.core.qos.QoSObserveRelation;
 import org.eclipse.californium.core.qos.QoSObservingEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.ResourceAttributes;
-import org.eclipse.californium.reverseproxy.PeriodicRequest;
 import org.eclipse.californium.reverseproxy.QoSParameters;
 import org.eclipse.californium.reverseproxy.ReverseProxy;
 
@@ -199,7 +189,6 @@ public class ReverseProxyResource extends CoapResource {
 		if(clientrelation != null)
 		{
 			//Observe Request
-			//exchange.advanced().sendAccept();
 			ResponseCode res = null;
 			if(!clientrelation.isEstablished()){
 				res = handleGETCoRE(exchange);
@@ -322,8 +311,6 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.FINER, "setTimestamp(" + timestamp + ")");
 		relation.getCurrent().advanced().setTimestamp(timestamp);
 		// Update also Max Age to consider Server RTT
-		LOGGER.info("MAX-AGE " + relation.getCurrent().advanced().getOptions().getMaxAge().toString());
-		LOGGER.info("RTT " + rtt);
 		relation.getCurrent().advanced().getOptions().setMaxAge(relation.getCurrent().advanced().getOptions().getMaxAge() - (rtt / 1000));
 	}
 	
@@ -576,7 +563,6 @@ public class ReverseProxyResource extends CoapResource {
 		boolean end = false;
 		while(!end) // delete the most demanding client
 		{
-			dumpSubscribers();
 			ScheduleResults ret = schedule();
 			end = ret.isValid();
 			if(!end){
@@ -687,8 +673,6 @@ public class ReverseProxyResource extends CoapResource {
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		//TODO remove
-		dumpSubscribers();
 		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
 			tasks.add(new Task(entry.getKey(), entry.getValue()));
 		}
@@ -707,13 +691,7 @@ public class ReverseProxyResource extends CoapResource {
 		return new ScheduleResults(periodMin, periodMax, rtt, false);
 	}
 	
-	private void dumpSubscribers() {
-		/*LOGGER.log(Level.INFO, "dumpSubscribers()");
-		for(Entry<ClientEndpoint, PeriodicRequest> entry : this.subscriberList.entrySet()){
-			LOGGER.info(entry.getKey().toString() + " " + entry.getValue().toString());
-		}*/
-		
-	}
+	
 
 	/**
 	 * Evaluates RTT of the end device by issuing a GET request.
@@ -854,7 +832,7 @@ public class ReverseProxyResource extends CoapResource {
 		@Override
 		public void run() {
 			while(observeEnabled.get()){
-				LOGGER.log(Level.INFO, "NotificationTask Run");
+				LOGGER.log(Level.FINE, "NotificationTask Run");
 				long delay = notificationPeriodMax;
 				if(relation == null || relation.getCurrent() != null){
 					Response notification = relation.getCurrent().advanced();
@@ -867,7 +845,7 @@ public class ReverseProxyResource extends CoapResource {
 						pr.setPmax(qosEndpoint.getPmax());
 						pr.setPmin(qosEndpoint.getPmin());
 						
-						LOGGER.info("Entry - " + pr.toString() + ":" + pr.isAllowed());
+						LOGGER.fine("Entry - " + pr.toString() + ":" + pr.isAllowed());
 						if(pr.isAllowed()){
 							Date now = new Date();
 							long timestamp = now.getTime();
@@ -889,9 +867,9 @@ public class ReverseProxyResource extends CoapResource {
 							System.out.println("deadline without rtt " + deadlinewithout );
 							System.out.println("deadline " + deadline);*/
 							if(timestamp >= nextInterval){
-								System.out.println("Time to send");
+								LOGGER.fine("Time to send");
 								if(qosObs.getLastNotificationBeforeTranslation().equals(notification)){ //old notification
-									System.out.println("Old Notification");
+									LOGGER.info("Old Notification");
 									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
 										delay = (deadline - timestamp);
 									//System.out.println("Delay " + delay);
@@ -906,7 +884,7 @@ public class ReverseProxyResource extends CoapResource {
 									
 								}
 							} else { // too early
-								System.out.println("Too early");
+								LOGGER.fine("Too early");
 								long nextawake = timestamp + delay;
 								//System.out.println("next Awake " + nextawake);
 								if(nextawake >= deadline){ // check if next awake will be to late
@@ -920,7 +898,7 @@ public class ReverseProxyResource extends CoapResource {
 					}
 				}
 				to_change = true;
-				LOGGER.info("Delay " + delay);
+				LOGGER.fine("Delay " + delay);
 				try {
 					lock.lock();
 					newNotification.await(delay, TimeUnit.MILLISECONDS);
@@ -945,7 +923,7 @@ public class ReverseProxyResource extends CoapResource {
 			long maxAge = response.getOptions().getMaxAge();
 			
 			if(timestampResponse + (maxAge * 1000) > timestamp){ //already take into account the rtt experimented by the notification
-				LOGGER.info("sendValidated to be sent");
+				LOGGER.fine("sendValidated to be sent");
 				changed();
 				
 			} else {
@@ -962,7 +940,7 @@ public class ReverseProxyResource extends CoapResource {
 	    @Override
 	    public void run() {
 	    	while(observeEnabled.get()){
-	    		LOGGER.info("RttTask");
+	    		LOGGER.fine("RttTask");
 	    		/*if(count < RENEW_COUNTER){
 	    			count++;
 	    			updateRTT(evaluateRtt());
