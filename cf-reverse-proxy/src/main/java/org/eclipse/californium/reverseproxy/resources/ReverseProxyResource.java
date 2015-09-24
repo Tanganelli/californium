@@ -311,7 +311,7 @@ public class ReverseProxyResource extends CoapResource {
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
 		if(clientEndpoint != null){
-			subscriberList.removeSubscriber(clientEndpoint);
+			boolean ret = subscriberList.removeSubscriber(clientEndpoint);
 		
 			if(subscriberList.getSize() == 0){
 				LOGGER.log(Level.INFO, "SubscriberList Empty");
@@ -320,7 +320,7 @@ public class ReverseProxyResource extends CoapResource {
 				newNotification.signalAll();
 				lock.unlock();
 				relation.proactiveCancel();
-			} else{
+			} else if(ret){
 				scheduleFeasibles();
 			}
 		}

@@ -15,8 +15,11 @@ public class PeriodicRequestContainer implements Iterable<Entry<ClientEndpoint, 
 		this.subscriberList.put(clientEndpoint, pr);
 	}
 	
-	public void removeSubscriber(ClientEndpoint clientEndpoint) {
-		this.subscriberList.remove(clientEndpoint);		
+	public boolean removeSubscriber(ClientEndpoint clientEndpoint) {
+		PeriodicRequest ret = this.subscriberList.remove(clientEndpoint);
+		if(ret == null)
+			return false;
+		return true;
 	}
 	
 	public int getSize() {
