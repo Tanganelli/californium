@@ -670,12 +670,12 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
 		PeriodicRequest invalid = getSubscriberCopy(client);
 		
-		Response response = getLast(invalid.getOriginRequest(), invalid);
-		response.getOptions().removeObserve();
-		response.setType(Type.NON);
+//		Response response = getLast(invalid.getOriginRequest(), invalid);
+//		response.getOptions().removeObserve();
+//		response.setType(Type.NON);
 		ObserveRelation rel = invalid.getExchange().advanced().getRelation();
 		rel.cancel();
-		invalid.getExchange().advanced().sendResponse(response);
+		rel.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
 		subscriberList.removeSubscriber(client);
 	}
 	
