@@ -40,6 +40,7 @@ import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.CoAPMulticastEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.qos.QoSServerMessageDeliverer;
 import org.eclipse.californium.core.server.resources.Resource;
 import org.eclipse.californium.reverseproxy.resources.ReverseProxyResource;
 import org.eclipse.californium.reverseproxy.ReverseProxyHandlerImpl;
@@ -69,7 +70,6 @@ public class ReverseProxy extends CoapServer {
 	private ScheduledExecutorService executor;
 	
 	public ReverseProxy(){
-		super();
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
 
@@ -101,7 +101,6 @@ public class ReverseProxy extends CoapServer {
 	}
 	
 	public ReverseProxy(String config, String ip){
-		super();
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
 		handlerIPv4 = new ReverseProxyHandlerImpl(this);
@@ -110,6 +109,7 @@ public class ReverseProxy extends CoapServer {
 			setUnicastEndpoint(new CoAPEndpoint(address));
 			getUnicastEndpoint().addInterceptor(new ReverseProxyInterceptor(this));
 			this.addEndpoint(getUnicastEndpoint());
+			this.setMessageDeliverer(new QoSServerMessageDeliverer(getRoot()));
 			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+getUnicastEndpoint().getAddress().getHostName(), this.getUnicastEndpoint(), this, this.handlerIPv4, config);
 			mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
 			clientRTT = new HashMap<InetSocketAddress, Long>();
