@@ -208,7 +208,7 @@ public class ReverseProxyResource extends CoapResource {
 				QoSParameters pr = pending.get(cEp);
 				ep.setPmax(pr.getPmax());
 				ep.setPmin(pr.getPmin());
-				pending.remove(cEp);
+				//pending.remove(cEp);
 			}
 			else
 				res = ResponseCode.CONTENT;
