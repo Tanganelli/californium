@@ -69,6 +69,7 @@ public class ReverseProxy extends CoapServer {
 	private ScheduledExecutorService executor;
 	
 	public ReverseProxy(){
+		super();
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
 
@@ -100,6 +101,7 @@ public class ReverseProxy extends CoapServer {
 	}
 	
 	public ReverseProxy(String config, String ip){
+		super();
 		Random rnd = new Random();
 		multicastMid = rnd.nextInt(65535);
 		handlerIPv4 = new ReverseProxyHandlerImpl(this);
