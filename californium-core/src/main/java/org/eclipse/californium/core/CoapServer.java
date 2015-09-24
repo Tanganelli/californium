@@ -33,6 +33,7 @@ import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.qos.QoSServerMessageDeliverer;
 import org.eclipse.californium.core.server.MessageDeliverer;
 import org.eclipse.californium.core.server.ServerInterface;
 import org.eclipse.californium.core.server.ServerMessageDeliverer;
@@ -144,7 +145,10 @@ public class CoapServer implements ServerInterface {
 		
 		// resources
 		this.root = createRoot();
-		this.deliverer = new ServerMessageDeliverer(root);
+		if (config.getBoolean(NetworkConfig.Keys.USE_QOS) == true) {
+			this.deliverer = new QoSServerMessageDeliverer(root);
+		} else
+			this.deliverer = new ServerMessageDeliverer(root);
 		
 		CoapResource well_known = new CoapResource(".well-known");
 		well_known.setVisible(false);

@@ -38,6 +38,7 @@ import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.Exchange.Origin;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.observe.ObserveRelation;
+import org.eclipse.californium.core.observe.ObserveRelationContainer;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.ResourceAttributes;
 import org.eclipse.californium.reverseproxy.PeriodicRequest;
@@ -83,11 +84,12 @@ public class ReverseProxyResource extends CoapResource {
 	private AtomicBoolean sendEvaluateRtt;
 
 	long emulatedDelay;
+
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 		this.uri = uri;
-		this.rtt = 500;
+		this.rtt = -1;
 		subscriberList = new PeriodicRequestContainer();
 	
 		for(String key : resourceAttributes.getAttributeKeySet()){

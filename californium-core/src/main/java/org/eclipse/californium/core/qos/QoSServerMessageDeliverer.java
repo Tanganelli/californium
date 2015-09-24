@@ -1,23 +1,4 @@
-/*******************************************************************************
- * Copyright (c) 2014 Institute for Pervasive Computing, ETH Zurich and others.
- * 
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Eclipse Distribution License v1.0 which accompany this distribution.
- * 
- * The Eclipse Public License is available at
- *    http://www.eclipse.org/legal/epl-v10.html
- * and the Eclipse Distribution License is available at
- *    http://www.eclipse.org/org/documents/edl-v10.html.
- * 
- * Contributors:
- *    Matthias Kovatsch - creator and main architect
- *    Martin Lanter - architect and re-implementation
- *    Dominique Im Obersteg - parsers and initial implementation
- *    Daniel Pauli - parsers and initial implementation
- *    Kai Hudalla - logging
- ******************************************************************************/
-package org.eclipse.californium.core.server;
+package org.eclipse.californium.core.qos;
 
 import java.net.InetSocketAddress;
 import java.util.LinkedList;
@@ -25,23 +6,19 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
-import org.eclipse.californium.core.coap.CoAP.Code;
-import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.coap.CoAP.Code;
+import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.observe.ObserveManager;
-import org.eclipse.californium.core.observe.ObserveManagerImpl;
 import org.eclipse.californium.core.observe.ObserveRelation;
-import org.eclipse.californium.core.observe.ObserveRelationImpl;
 import org.eclipse.californium.core.observe.ObservingEndpoint;
+import org.eclipse.californium.core.server.MessageDeliverer;
+import org.eclipse.californium.core.server.ServerMessageDeliverer;
 import org.eclipse.californium.core.server.resources.Resource;
 
-/**
- * The ServerMessageDeliverer delivers requests to corresponding resources and
- * responses to corresponding requests.
- */
-public class ServerMessageDeliverer implements MessageDeliverer {
+public class QoSServerMessageDeliverer implements MessageDeliverer {
 
 	private final static Logger LOGGER = Logger.getLogger(ServerMessageDeliverer.class.getCanonicalName());
 
@@ -49,7 +26,7 @@ public class ServerMessageDeliverer implements MessageDeliverer {
 	private final Resource root;
 
 	/* The manager of the observe mechanism for this server */
-	private ObserveManager observeManager = (ObserveManager) new ObserveManagerImpl();
+	private ObserveManager observeManager = new QoSObserveManager();
 
 	/**
 	 * Constructs a default message deliverer that delivers requests to the
@@ -57,7 +34,7 @@ public class ServerMessageDeliverer implements MessageDeliverer {
 	 * 
 	 * @param root the root resource
 	 */
-	public ServerMessageDeliverer(Resource root) {
+	public QoSServerMessageDeliverer(Resource root) {
 		this.root = root;
 	}
 
@@ -114,7 +91,7 @@ public class ServerMessageDeliverer implements MessageDeliverer {
 				// Requests wants to observe and resource allows it :-)
 				LOGGER.finer("Initiate an observe relation between " + request.getSource() + ":" + request.getSourcePort() + " and resource " + resource.getURI());
 				ObservingEndpoint remote = observeManager.findObservingEndpoint(source);
-				ObserveRelation relation = new ObserveRelationImpl(remote, resource, exchange);
+				QoSObserveRelation relation = new QoSObserveRelation(remote, resource, exchange);
 				remote.addObserveRelation(relation);
 				exchange.setRelation(relation);
 				// all that's left is to add the relation to the resource which
@@ -156,4 +133,5 @@ public class ServerMessageDeliverer implements MessageDeliverer {
 		if (exchange.getRequest() == null) throw new NullPointerException();
 		exchange.getRequest().setResponse(response);
 	}
+
 }

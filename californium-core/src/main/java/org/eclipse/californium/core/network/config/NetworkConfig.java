@@ -83,6 +83,7 @@ public class NetworkConfig {
 	
 		public static final String USE_CONGESTION_CONTROL = "USE_CONGESTION_CONTROL";
 		public static final String CONGESTION_CONTROL_ALGORITHM = "CONGESTION_CONTROL_ALGORITHM";
+		public static final String USE_QOS = "USE_QOS";
 		
 		public static final String PROTOCOL_STAGE_THREAD_COUNT = "PROTOCOL_STAGE_THREAD_COUNT";
 		public static final String NETWORK_STAGE_RECEIVER_THREAD_COUNT = "NETWORK_STAGE_RECEIVER_THREAD_COUNT";
