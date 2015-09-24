@@ -93,6 +93,12 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 			setExit(true);
 
 		}
+		if(!response.isSuccess()){
+			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce with ERROR");
+			System.out.println(getNow() + "INFO - Received Responce with ERROR");
+			setExit(true);
+
+		}
 		
 		timestampLast = timestamp;
 		maxAgeLast = response.getOptions().getMaxAge();
