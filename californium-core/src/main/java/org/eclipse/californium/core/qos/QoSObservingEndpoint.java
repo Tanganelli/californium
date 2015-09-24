@@ -12,7 +12,6 @@ public class QoSObservingEndpoint implements ObservingEndpoint{
 
 	private int pmin;
 	private int pmax;
-	private boolean allowed;
 	
 	/** The list of relations the endpoint has established with this server */
 	private final List<QoSObserveRelation> relations;
@@ -24,7 +23,6 @@ public class QoSObservingEndpoint implements ObservingEndpoint{
 		this.address = address;
 		setPmin(-1);
 		setPmax(-1);
-		setAllowed(false);
 		this.relations = new CopyOnWriteArrayList<QoSObserveRelation>();
 	}
 
@@ -42,14 +40,6 @@ public class QoSObservingEndpoint implements ObservingEndpoint{
 
 	public void setPmax(int pmax) {
 		this.pmax = pmax;
-	}
-
-	public boolean isAllowed() {
-		return allowed;
-	}
-
-	public void setAllowed(boolean allowed) {
-		this.allowed = allowed;
 	}
 
 	/**

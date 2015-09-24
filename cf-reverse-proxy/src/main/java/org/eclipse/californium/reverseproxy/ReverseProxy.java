@@ -111,13 +111,13 @@ public class ReverseProxy extends CoapServer {
 			setUnicastEndpoint(new CoAPEndpoint(address));
 			getUnicastEndpoint().addInterceptor(new ReverseProxyInterceptor(this));
 			this.addEndpoint(getUnicastEndpoint());
-			if (true) {
-				LOGGER.info("USE QOS");
-				this.setMessageDeliverer(new QoSServerMessageDeliverer(getRoot()));
-			} else{
-				LOGGER.info("NOT USE QOS");
-				this.setMessageDeliverer(new ServerMessageDeliverer(getRoot()));
-			}
+//			if (true) {
+//				LOGGER.info("USE QOS");
+//				this.setMessageDeliverer(new QoSServerMessageDeliverer(getRoot()));
+//			} else{
+//				LOGGER.info("NOT USE QOS");
+//				this.setMessageDeliverer(new ServerMessageDeliverer(getRoot()));
+//			}
 			
 			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+getUnicastEndpoint().getAddress().getHostName(), this.getUnicastEndpoint(), this, this.handlerIPv4, config);
 			mapping = new HashMap<InetSocketAddress, Set<WebLink>>();

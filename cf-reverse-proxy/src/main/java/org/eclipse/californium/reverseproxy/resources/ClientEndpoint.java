@@ -1,6 +1,7 @@
 package org.eclipse.californium.reverseproxy.resources;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 public class ClientEndpoint {
 	private InetAddress address; 
@@ -9,6 +10,10 @@ public class ClientEndpoint {
 	public ClientEndpoint(InetAddress address, int port){
 		setAddress(address);
 		setPort(port);
+	}
+	public ClientEndpoint(InetSocketAddress address) {
+		setAddress(address.getAddress());
+		setPort(address.getPort());
 	}
 	public InetAddress getAddress() {
 		return address;

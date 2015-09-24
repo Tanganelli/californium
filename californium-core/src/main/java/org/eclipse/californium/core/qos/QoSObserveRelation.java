@@ -29,6 +29,9 @@ public class QoSObserveRelation implements ObserveRelation{
 	
 	private Response recentControlNotification;
 	private Response nextControlNotification;
+	private Response lastNotificationBeforeTranslation;
+	
+	private long lastTimespamp = -1;
 	
 	private String key = null;
 
@@ -96,7 +99,7 @@ public class QoSObserveRelation implements ObserveRelation{
 		LOGGER.info("Canceling observe relation "+getKey()+" with "+resource.getURI());
 		setEstablished(false);
 		resource.removeObserveRelation(this);
-		endpoint.removeObserveRelation(this);
+		getEndpoint().removeObserveRelation(this);
 		exchange.setComplete();
 	}
 	
@@ -106,7 +109,7 @@ public class QoSObserveRelation implements ObserveRelation{
 	 */
 	@Override
 	public void cancelAll() {
-		endpoint.cancelAll();
+		getEndpoint().cancelAll();
 	}
 	
 	/**
@@ -145,7 +148,7 @@ public class QoSObserveRelation implements ObserveRelation{
 	 */
 	@Override
 	public InetSocketAddress getSource() {
-		return endpoint.getAddress();
+		return getEndpoint().getAddress();
 	}
 
 	@Override
@@ -193,5 +196,26 @@ public class QoSObserveRelation implements ObserveRelation{
 	@Override
 	public String getKey() {
 		return this.key;
+	}
+
+	public ObservingEndpoint getEndpoint() {
+		return endpoint;
+	}
+
+	public long getLastTimespamp() {
+		return lastTimespamp;
+	}
+
+	public void setLastTimespamp(long lastTimespamp) {
+		this.lastTimespamp = lastTimespamp;
+	}
+
+	public Response getLastNotificationBeforeTranslation() {
+		return lastNotificationBeforeTranslation;
+	}
+
+	public void setLastNotificationBeforeTranslation(
+			Response lastNotificationBeforeTranslation) {
+		this.lastNotificationBeforeTranslation = lastNotificationBeforeTranslation;
 	}
 }
