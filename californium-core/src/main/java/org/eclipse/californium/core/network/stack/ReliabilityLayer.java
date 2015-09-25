@@ -199,7 +199,7 @@ public class ReliabilityLayer extends AbstractLayer {
 		
 		if (request.isDuplicate()) {
 			// Request is a duplicate, so resend ACK, RST or response
-			if (exchange.getCurrentResponse() != null && exchange.getCurrentRequest().getType() != null) {
+			if (exchange.getCurrentResponse() != null && exchange.getCurrentResponse().getType() != null) {
 				LOGGER.fine("Respond with the current response to the duplicate request");
 				// Do not restart retransmission cycle
 				super.sendResponse(exchange, exchange.getCurrentResponse());
