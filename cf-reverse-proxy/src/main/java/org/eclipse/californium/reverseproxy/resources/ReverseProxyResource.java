@@ -725,9 +725,11 @@ public class ReverseProxyResource extends CoapResource {
 					} else {
 						LOGGER.warning("No response received, evaluateRtt.");
 						timeout += WAIT_FACTOR;
+						if(timeout >= 5*WAIT_FACTOR)
+							LOGGER.severe("Give up on evaluateRtt");
 					}
 				}
-				LOGGER.severe("Give up on evaluateRtt");
+				
 			} catch (InterruptedException e) {
 				LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
 			}
