@@ -72,7 +72,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 			maxAgeLast = response.getOptions().getMaxAge();
 		}
 		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast) +
-				", Max-Age defference: " + ((timestampLast + (maxAgeLast * 1000)) - timestamp) / 1000);
+				", Last notification was valid for other: " + (((timestampLast + (maxAgeLast * 1000)) - timestamp) / 1000) + " seconds");
 		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
 		
 		if(timestamp > timestampLast + pmax){
@@ -87,12 +87,6 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 			setMissGaps(getMissGaps() + 1);
 		}
 		
-		if(response.getOptions().getObserve() == null){
-			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce without OBSERVE");
-			System.out.println(getNow() + "INFO - Received Responce without OBSERVE");
-			setExit(true);
-
-		}
 		if(!response.isSuccess()){
 			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce with ERROR");
 			System.out.println(getNow() + "INFO - Received Responce with ERROR");
@@ -100,8 +94,16 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 
 		}
 		
+		if(response.getOptions().getObserve() == null){
+			LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Responce without OBSERVE");
+			System.out.println(getNow() + "INFO - Received Responce without OBSERVE");
+			setExit(true);
+
+		}
+		
 		timestampLast = timestamp;
 		maxAgeLast = response.getOptions().getMaxAge();
+		LOGGER.info("MaxAge: " + maxAgeLast);
 		if(notificationsCount >= stopCount || isExit()){
 			lock.lock();
 			notEnd.signal();
