@@ -519,7 +519,7 @@ public class ReverseProxyResource extends CoapResource {
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		String uri = this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period;
-		Request request = new Request(Code.PUT, Type.CON);
+		Request request = new Request(Code.PUT, Type.NON);
 		request.setURI(uri);
 		request.send(reverseProxy.getUnicastEndpoint());
 		LOGGER.info("setObservingQos - " + request);
@@ -700,7 +700,7 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private long evaluateRtt() {
 		LOGGER.log(Level.INFO, "evaluateRtt()");
-		Request request = new Request(Code.GET, Type.CON);
+		Request request = new Request(Code.GET, Type.NON);
 		request.setURI(this.uri);
 		
 		if(sendEvaluateRtt.compareAndSet(true, false)) // only one message
@@ -942,7 +942,7 @@ public class ReverseProxyResource extends CoapResource {
 	    		*/
 	    		updateRTT();
 	    		try {
-					Thread.sleep(PERIOD_RTT);
+					Thread.sleep(Math.max(PERIOD_RTT, rtt));
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
