@@ -852,30 +852,21 @@ public class ReverseProxyResource extends CoapResource {
 							
 							long nextInterval = 0;
 							long deadline = 0;
+							long maxAge = notification.getOptions().getMaxAge() * 1000;
 							if(qosObs.getLastTimespamp() == -1){
 								nextInterval = (timestamp + ((long)pr.getPmin()));
-								deadline = timestamp + ((long)pr.getPmax());
+								deadline = timestamp + Math.min(((long)pr.getPmax()), maxAge);
 							}
 							else{
 								nextInterval = (qosObs.getLastTimespamp() + ((long)pr.getPmin()));
-								deadline = qosObs.getLastTimespamp() + ((long)pr.getPmax());
+								deadline = qosObs.getLastTimespamp() + Math.min(((long)pr.getPmax()), maxAge);
 							}
-							/*System.out.println("RTT " + rtt);
-							System.out.println("timestamp " + timestamp);
-							System.out.println("next Interval " + nextInterval);
-							System.out.println("client RTT " + clientRTT);
-							System.out.println("deadline without rtt " + deadlinewithout );
-							System.out.println("deadline " + deadline);*/
 							if(timestamp >= nextInterval){
 								LOGGER.fine("Time to send");
 								if(qosObs.getLastNotificationBeforeTranslation().equals(notification)){ //old notification
 									LOGGER.info("Old Notification");
 									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
-										delay = (deadline - timestamp);
-									//System.out.println("Delay " + delay);
-									//if((deadline - timestamp) < 0) 
-										//sendValidated(cl, pr, timestamp);
-									
+										delay = (deadline - timestamp);									
 								} else{
 									System.out.println("New notification");
 									if(to_change)
@@ -886,12 +877,10 @@ public class ReverseProxyResource extends CoapResource {
 							} else { // too early
 								LOGGER.fine("Too early");
 								long nextawake = timestamp + delay;
-								//System.out.println("next Awake " + nextawake);
 								if(nextawake >= deadline){ // check if next awake will be to late
 									if(delay > (deadline - timestamp))
 										delay = (deadline - timestamp);
 								}
-								//System.out.println("Delay " + delay);
 							}
 						}
 							
