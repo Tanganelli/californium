@@ -234,7 +234,8 @@ public class ReverseProxyResource extends CoapResource {
 			}
 			else 
 				exchange.respond(res);
-		}else if(exchange.advanced().isComplete()){ // client deleted observing relation
+		}else if(exchange.advanced().getCurrentRequest().getOptions().getObserve() != null &&
+				exchange.advanced().getCurrentRequest().getOptions().getObserve() == 1){ // client deleted observing relation
 			
 			//Cancel Observe Request
 			Response responseForClients;			
@@ -722,10 +723,11 @@ public class ReverseProxyResource extends CoapResource {
 						 rtt = response.getRemoteEndpoint().getCurrentRTO() + emulatedDelay;
 						break;
 					} else {
-						LOGGER.warning("No response received.");
+						LOGGER.warning("No response received, evaluateRtt.");
 						timeout += WAIT_FACTOR;
 					}
 				}
+				LOGGER.severe("Give up on evaluateRtt");
 			} catch (InterruptedException e) {
 				LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
 			}
