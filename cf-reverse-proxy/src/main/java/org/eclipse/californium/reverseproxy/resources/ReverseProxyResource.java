@@ -700,35 +700,24 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private long evaluateRtt() {
 		LOGGER.log(Level.INFO, "evaluateRtt()");
-		Request request = new Request(Code.GET, Type.NON);
+		Request request = new Request(Code.GET, Type.CON);
 		request.setURI(this.uri);
 		
 		if(sendEvaluateRtt.compareAndSet(true, false)) // only one message
 		{
 			request.send(this.getEndpoints().get(0));
-			long timeout = WAIT_FACTOR;
 			Response response;
 			try {
-				while(timeout < 5*WAIT_FACTOR){
-					if(rtt == -1){
-						response = request.waitForResponse(5000 * timeout);
-					} else
-					{
-						response = request.waitForResponse(rtt * timeout);
-					}
-		
+					response = request.waitForResponse();
+
 					if (response != null) {
-						LOGGER.finer("Coap response received.");
+						LOGGER.info("Coap response received.");
 						// get RTO from the response
 						 rtt = response.getRemoteEndpoint().getCurrentRTO() + emulatedDelay;
-						break;
 					} else {
-						LOGGER.warning("No response received, evaluateRtt.");
-						timeout += WAIT_FACTOR;
-						if(timeout >= 5*WAIT_FACTOR)
-							LOGGER.severe("Give up on evaluateRtt");
+						LOGGER.severe("Give up on evaluateRtt");
 					}
-				}
+				
 				
 			} catch (InterruptedException e) {
 				LOGGER.warning("Receiving of response interrupted: " + e.getMessage());
