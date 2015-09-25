@@ -940,7 +940,7 @@ public class ReverseProxyResource extends CoapResource {
 	    		*/
 	    		updateRTT(evaluateRtt());
 	    		try {
-					Thread.sleep(Math.max(PERIOD_RTT, notificationPeriodMin));
+					Thread.sleep(PERIOD_RTT);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
