@@ -519,22 +519,16 @@ public class ReverseProxyResource extends CoapResource {
 		long min_period = (this.notificationPeriodMin) / 1000; // convert to second
 		long max_period = (this.notificationPeriodMax) / 1000; // convert to second
 		String uri = this.uri+"?"+CoAP.MINIMUM_PERIOD +"="+ min_period + "&" + CoAP.MAXIMUM_PERIOD +"="+ max_period;
-		Request request = new Request(Code.PUT, Type.NON);
+		Request request = new Request(Code.PUT, Type.CON);
 		request.setURI(uri);
 		request.send(reverseProxy.getUnicastEndpoint());
 		LOGGER.info("setObservingQos - " + request);
 		Response response;
 		long timeout = WAIT_FACTOR;
 		try {
-			while(timeout < 5*WAIT_FACTOR){
-				if(rtt == -1){
-					response = request.waitForResponse(500 * timeout);
-				} else
-				{
-					response = request.waitForResponse(rtt * timeout);
-				}
+			while(timeout < 10*WAIT_FACTOR){
 				// receive the response
-	
+				response = request.waitForResponse();
 				if (response != null) {
 					LOGGER.info("Coap response received. - " + response);
 
@@ -548,7 +542,7 @@ public class ReverseProxyResource extends CoapResource {
 					timeout += WAIT_FACTOR;
 				}
 			}
-			if(timeout == 5*WAIT_FACTOR){
+			if(timeout == 10*WAIT_FACTOR){
 				LOGGER.warning("Observig cannot be set on remote endpoint.");
 			}
 		} catch (InterruptedException e) {
