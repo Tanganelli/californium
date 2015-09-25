@@ -408,11 +408,11 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param currentRTO the new RTT
 	 */
-	public void updateRTT(long currentRTO) {
-		LOGGER.log(Level.FINER, "updateRTO(" + currentRTO + ")");
-		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(currentRTO));
-		rtt = currentRTO;
-		if((currentRTO - THRESHOLD) > lastValidRtt){ //worse RTT
+	public void updateRTT() {
+		evaluateRtt();
+		LOGGER.log(Level.FINER, "updateRTO()");
+		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(rtt));
+		if((rtt - THRESHOLD) > lastValidRtt){ //worse RTT
 			scheduleFeasibles();
 		} 
 	}
@@ -644,7 +644,7 @@ public class ReverseProxyResource extends CoapResource {
 	 */
 	private boolean scheduleNewRequest(QoSParameters params) {
 		LOGGER.log(Level.INFO, "scheduleNewRequest(" + params + ")");
-		if(this.rtt == -1) this.rtt = evaluateRtt();
+		if(this.rtt == -1) evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
 		ScheduleResults ret = schedule();
 		LOGGER.log(Level.INFO, " End scheduleNewRequest(" + params + ")");
@@ -701,7 +701,7 @@ public class ReverseProxyResource extends CoapResource {
 		LOGGER.log(Level.INFO, "evaluateRtt()");
 		Request request = new Request(Code.GET, Type.CON);
 		request.setURI(this.uri);
-		long rtt = this.rtt;
+		
 		if(sendEvaluateRtt.compareAndSet(true, false)) // only one message
 		{
 			request.send(this.getEndpoints().get(0));
@@ -938,7 +938,7 @@ public class ReverseProxyResource extends CoapResource {
 	    			updateRTT(renewRegistration());
 	    		}
 	    		*/
-	    		updateRTT(evaluateRtt());
+	    		updateRTT();
 	    		try {
 					Thread.sleep(PERIOD_RTT);
 				} catch (InterruptedException e) {
