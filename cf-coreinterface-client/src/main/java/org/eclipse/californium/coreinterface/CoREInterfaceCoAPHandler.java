@@ -73,7 +73,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		}
 		LOGGER.info("Client (" + pmin + "-" + pmax + ") Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast) +
 				", Last notification was valid for other: " + (((timestampLast + (maxAgeLast * 1000)) - timestamp) / 1000) + " seconds");
-		System.out.println(getNow() + "INFO - Received Notification number:" + notificationsCount + ", Since Last: " + (timestamp - timestampLast));
+		System.out.println(getNow() + " " + notificationsCount + " " + (timestamp - timestampLast) + " " + (((timestampLast + (maxAgeLast * 1000)) - timestamp) / 1000));
 		
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
