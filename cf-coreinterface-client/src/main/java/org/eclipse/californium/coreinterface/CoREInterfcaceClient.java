@@ -45,7 +45,7 @@ public class CoREInterfcaceClient {
 		String ip = cli.getIp();
 		Lock lock = new ReentrantLock();
 		Condition notEnd = lock.newCondition();
-		try {
+		/*try {
 			handler = new FileHandler(logFile);
 			LOGGER.addHandler(handler);
 		} catch (SecurityException e) {
@@ -54,7 +54,7 @@ public class CoREInterfcaceClient {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 		
 		String putUri = uri + "?pmin=" + String.valueOf(pmin) + "&pmax=" + String.valueOf(pmax);
 		
