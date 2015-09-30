@@ -26,4 +26,7 @@ public class Task{
 	public void setParameters(QoSParameters parameters) {
 		this.parameters = parameters;
 	}
+	public String toString(){
+		return "Task " + parameters.toString();
+	}
 }

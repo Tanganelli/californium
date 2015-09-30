@@ -332,10 +332,9 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param cancelledRelation 
 	 */
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
-		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
+		/*LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
 		if(clientEndpoint != null){
-			scheduleFeasibles();
-			/*if(this.getObserveRelations().getSize() == 0){
+			if(this.getObserveRelations().getSize() == 0){
 				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
 				lock.lock();
@@ -344,8 +343,8 @@ public class ReverseProxyResource extends CoapResource {
 				relation.proactiveCancel();
 			} else{
 				scheduleFeasibles();
-			}*/
-		}
+			}
+		}*/
 	}
 
 	/**
@@ -671,7 +670,9 @@ public class ReverseProxyResource extends CoapResource {
 		}
 		List<Task> tasks = new ArrayList<Task>();
 		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			tasks.add(new Task(entry.getKey(), entry.getValue()));
+			Task t = new Task(entry.getKey(), entry.getValue());
+			tasks.add(t);
+			LOGGER.info(t.toString());
 		}
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
