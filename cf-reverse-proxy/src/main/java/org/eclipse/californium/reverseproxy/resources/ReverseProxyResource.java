@@ -78,13 +78,12 @@ public class ReverseProxyResource extends CoapResource {
 
 	long emulatedDelay;
 
-	private Map<ClientEndpoint, QoSParameters> pending;
+
 	
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 		this.uri = uri;
 		this.rtt = -1;
-		pending = new ConcurrentHashMap<ClientEndpoint, QoSParameters>();
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
@@ -155,8 +154,8 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param exchange the CoapExchange for the simple API
 	 */
 	public void handlePUT(CoapExchange exchange) {
-		exchange.advanced().sendAccept();
-		LOGGER.log(Level.FINER, "handlePUT(" + exchange + ")");
+		exchange.respond(ResponseCode.CHANGED);
+		/*LOGGER.log(Level.FINER, "handlePUT(" + exchange + ")");
 		Request request = exchange.advanced().getRequest();
 		List<String> queries = request.getOptions().getUriQuery();
 		if(!queries.isEmpty()){
@@ -172,7 +171,7 @@ public class ReverseProxyResource extends CoapResource {
 		else{
 			Response response = forwardRequest(request);
 			exchange.respond(response);
-		}
+		}*/
 	}
 	
 	/**
@@ -194,12 +193,7 @@ public class ReverseProxyResource extends CoapResource {
 			ResponseCode res = null;
 			if(!clientrelation.isEstablished()){
 				exchange.advanced().sendAccept();
-				res = handleGETCoRE(exchange);
-				QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
-				ClientEndpoint cEp = new ClientEndpoint(ep.getAddress());
-				QoSParameters pr = pending.get(cEp);
-				ep.setPmax(pr.getPmax());
-				ep.setPmin(pr.getPmin());
+				res = handleGETCoRE(clientrelation);
 			}
 			else
 				res = ResponseCode.CONTENT;
@@ -423,90 +417,23 @@ public class ReverseProxyResource extends CoapResource {
 	/**
 	 * Checks if the Observing relationship can be added.
 	 * 
-	 * @param exchange the exchange that generates the Observing request
+	 * @param clientrelation the exchange that generates the Observing request
 	 * @return the PeriodicRequest representing the Periodic Observing relationship
 	 */
-	private ResponseCode handleGETCoRE(CoapExchange exchange) {
-		LOGGER.log(Level.FINER, "handleGETCoRE(" + exchange + ")");
-		Request request = exchange.advanced().getCurrentRequest();
-		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
-		QoSParameters pr = pending.get(clientEndpoint);
-		if(pr == null)
-			return ResponseCode.FORBIDDEN;
+	private ResponseCode handleGETCoRE(QoSObserveRelation clientrelation) {
+		LOGGER.log(Level.FINER, "handleGETCoRE(" + clientrelation + ")");
+		QoSParameters pr = new QoSParameters();
+		pr.setPmax(clientrelation.getPmax());
+		pr.setPmin(clientrelation.getPmin());
+		pr.setAllowed(clientrelation.isEstablished());
 		
 		// Both parameters have been set
-		if(pr.getPmin() != -1 && pr.getPmax() != -1){
-			if(pr.isAllowed() || scheduleNewRequest(pr)){
+		if(pr.isAllowed() || scheduleNewRequest(pr)){
 				return ResponseCode.CONTENT;				
-			} else{
-				// Scheduling is not feasible
-				return ResponseCode.NOT_ACCEPTABLE;
-			}
+		} else{
+			// Scheduling is not feasible
+			return ResponseCode.NOT_ACCEPTABLE;
 		}
-		else{
-			//No parameter has been set
-			/* TODO Decide what to do in the case of an observing relationship where the client didn't set any parameter
-			 * Now we stop it and reply with an error.
-			 */
-			return ResponseCode.FORBIDDEN;
-		}
-	}
-
-	/**
-	 * Checks if pmin and pmax are contained as UriQuery. 
-	 * If yes, store them and replies with CHANGED. 
-	 * 
-	 * @param exchange the exchange that own the incoming request
-	 * @return the ResponseCode to used in the reply to the client
-	 */
-	private ResponseCode handlePUTCoRE(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "handlePUTCoRE(" + exchange + ")");
-		Request request = exchange.advanced().getCurrentRequest();
-		List<String> queries = request.getOptions().getUriQuery();
-		ClientEndpoint clientEndpoint = new ClientEndpoint(request.getSource(), request.getSourcePort());
-		QoSParameters pr = pending.get(clientEndpoint); 
-		if(pr == null)
-			pr = new QoSParameters();
-		int pmin = -1;
-		int pmax = -1;
-		for(String composedquery : queries){
-			//handle queries values
-			String[] tmp = composedquery.split("=");
-			if(tmp.length != 2) // not valid Pmin or Pmax
-				return null;
-			String query = tmp[0];
-			String value = tmp[1];
-			if(query.equals(CoAP.MINIMUM_PERIOD)){
-				int seconds = -1;
-				try{
-					seconds = Integer.parseInt(value); 
-					if(seconds <= 0) throw new NumberFormatException();
-				} catch(NumberFormatException e){
-					return ResponseCode.BAD_REQUEST;
-				}
-				pmin = seconds * 1000; //convert to milliseconds 
-			} else if(query.equals(CoAP.MAXIMUM_PERIOD)){
-				int seconds = -1;
-				try{
-					seconds = Integer.parseInt(value); 
-					if(seconds <= 0) throw new NumberFormatException();
-				} catch(NumberFormatException e){
-					return ResponseCode.BAD_REQUEST;
-				}
-				pmax = seconds * 1000; //convert to milliseconds 
-			}
-		}
-		if(pmin > pmax)
-			return ResponseCode.BAD_REQUEST;
-		// Minimum and Maximum period has been set
-		if(pmin != -1 && pmax != -1){
-			pr.setPmax(pmax);
-			pr.setPmin(pmin);
-			pr.setAllowed(false);
-			pending.put(clientEndpoint, pr);
-			return ResponseCode.CHANGED;
-		}
-		return null;
 	}
 	
 
@@ -563,7 +490,7 @@ public class ReverseProxyResource extends CoapResource {
 			ScheduleResults ret = schedule();
 			end = ret.isValid();
 			if(!end){
-				ClientEndpoint client = minPmaxClient();
+				QoSObserveRelation client = minPmaxClient();
 				if(client != null){
 					deleteSubscriptionFromProxy(client);
 				}
@@ -579,18 +506,12 @@ public class ReverseProxyResource extends CoapResource {
 		}
 	}
 
-	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
-		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + " (" + pending.get(client) + ") )");
+	private void deleteSubscriptionFromProxy(QoSObserveRelation obs) {
+		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + obs.getPmin() + ", "+obs.getPmax()+")");
+
+		obs.cancel();
+		obs.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
 		
-		for(ObserveRelation obs : this.getObserveRelations()){
-			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
-			ClientEndpoint tmp = new ClientEndpoint(qosObs.getEndpoint().getAddress());
-			if(tmp.equals(client)){
-				obs.cancel();
-				pending.remove(client);
-				obs.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
-			}
-		}
 	}
 	
 	private boolean updatePeriods(ScheduleResults ret) {
@@ -618,25 +539,18 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return the PeriodicRequest with the minimum pmax.
 	 */
-	private ClientEndpoint minPmaxClient() {
+	private QoSObserveRelation minPmaxClient() {
 		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
-		ClientEndpoint ret = null;
-		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			if(entry.getValue().getPmax() < minPmax){
-				minPmax = entry.getValue().getPmax();
-				ret = entry.getKey();
-			}
-		}
-		/*for(ObserveRelation obs : this.getObserveRelations()){
+		QoSObserveRelation ret = null;
+
+		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
-			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
-			if(qosEndpoint.getPmax() < minPmax){
-				minPmax = qosEndpoint.getPmax();
-				ret = qosEndpoint.getAddress();
+			if(qosObs.getPmax() < minPmax){
+				minPmax = qosObs.getPmax();
+				ret = qosObs;
 			}
 		}
-		return new ClientEndpoint(ret);*/
 		return ret;
 	}
 
@@ -673,35 +587,26 @@ public class ReverseProxyResource extends CoapResource {
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
 		
-		if(this.pending.size() == 0){
+		if(this.getObserverCount() == 0){
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		/*for(ObserveRelation obs : this.getObserveRelations()){
+		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
-			Task t = new Task(tmp, this.pending.get(tmp));
+			Task t = new Task(tmp, new QoSParameters(qosObs.getPmin(), qosObs.getPmax(), false));
 			tasks.add(t);
 			LOGGER.info(t.toString());
 			
-		}*/
-		
-		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			Task t = new Task(entry.getKey(), entry.getValue());
-			tasks.add(t);
-			LOGGER.info(t.toString());
 		}
-		
+
 		Periods periods = scheduler.schedule(tasks, rtt);
 		
 		int periodMax = periods.getPmax();
 		int periodMin = periods.getPmin();
 
 		if(periodMax > rtt){
-			for(Task t : tasks){
-				this.pending.get(t.getClient()).setAllowed(true);
-			}
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
 		return new ScheduleResults(periodMin, periodMax, rtt, false);

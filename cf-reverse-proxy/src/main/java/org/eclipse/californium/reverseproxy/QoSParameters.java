@@ -16,6 +16,7 @@ public class QoSParameters{
 	public QoSParameters(int pmin, int pmax, boolean allowed) {
 		this.pmin = pmin;
 		this.pmax = pmax;
+		this.allowed = allowed;
 	}
 	public int getPmin() {
 		return pmin;

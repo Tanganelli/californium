@@ -88,4 +88,8 @@ public class QoSObservingEndpoint implements ObservingEndpoint{
 		}
 		return null;
 	}
+	
+	public ObserveRelation getObserveRelation(){
+		return relations.get(0);
+	}
 }

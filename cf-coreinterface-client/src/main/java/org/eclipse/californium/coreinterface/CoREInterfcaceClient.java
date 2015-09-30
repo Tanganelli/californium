@@ -64,7 +64,7 @@ public class CoREInterfcaceClient {
 		
 		CoapClient client = new CoapClient();
 		client.setTimeout(0);
-		client.setURI(putUri);
+		//client.setURI(putUri);
 		if(ip != null){
 			try {
 				InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName(ip), 0);
@@ -76,11 +76,10 @@ public class CoREInterfcaceClient {
 			}
 		}
 		
-		response = client.put("", MediaTypeRegistry.UNDEFINED);
+		//response = client.put("", MediaTypeRegistry.UNDEFINED);
 		try{
-			if(response.getCode() == ResponseCode.CHANGED)
-			{
-				client.setURI(uri);
+
+				client.setURI(putUri);
 				CoapObserveRelation relation = client.observe(handler);
 				try {
 					lock.lock();
@@ -96,7 +95,7 @@ public class CoREInterfcaceClient {
 				//relation.proactiveCancel();
 				LOGGER.info("Missed Deadlines: "+ handler.getMissDeadlines() + ", Missed Gaps: "+ handler.getMissGaps() +", TotalNotifications: "+ handler.getNotificationsCount());
 				System.out.println(getNow() + "INFO - Missed Deadlines: "+ handler.getMissDeadlines() + ", TotalNotifications: "+ handler.getNotificationsCount());
-			}
+			
 		} catch (NullPointerException e)
 		{
 			e.printStackTrace();

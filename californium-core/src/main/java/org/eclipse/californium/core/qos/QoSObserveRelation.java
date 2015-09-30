@@ -30,6 +30,8 @@ public class QoSObserveRelation implements ObserveRelation{
 	private Response recentControlNotification;
 	private Response nextControlNotification;
 	private Response lastNotificationBeforeTranslation;
+	private int pmin;
+	private int pmax;
 	
 	private long lastTimespamp = -1;
 	
@@ -217,5 +219,21 @@ public class QoSObserveRelation implements ObserveRelation{
 	public void setLastNotificationBeforeTranslation(
 			Response lastNotificationBeforeTranslation) {
 		this.lastNotificationBeforeTranslation = lastNotificationBeforeTranslation;
+	}
+
+	public int getPmin() {
+		return pmin;
+	}
+
+	public void setPmin(int pmin) {
+		this.pmin = pmin;
+	}
+
+	public int getPmax() {
+		return pmax;
+	}
+
+	public void setPmax(int pmax) {
+		this.pmax = pmax;
 	}
 }

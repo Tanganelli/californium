@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
+import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.coap.CoAP.Code;
@@ -47,6 +48,7 @@ public class QoSServerMessageDeliverer implements MessageDeliverer {
 		List<String> path = request.getOptions().getUriPath();
 		final Resource resource = findResource(path);
 		if (resource != null) {
+
 			checkForObserveOption(exchange, resource);
 			
 			// Get the executor and let it process the request
@@ -84,18 +86,56 @@ public class QoSServerMessageDeliverer implements MessageDeliverer {
 		if (request.getCode() != Code.GET) return;
 
 		InetSocketAddress source = new InetSocketAddress(request.getSource(), request.getSourcePort());
-
+		
+		List<String> queries = request.getOptions().getUriQuery();
 		if (request.getOptions().hasObserve() && resource.isObservable()) {
 			
 			if (request.getOptions().getObserve()==0) {
 				// Requests wants to observe and resource allows it :-)
-				LOGGER.finer("Initiate an observe relation between " + request.getSource() + ":" + request.getSourcePort() + " and resource " + resource.getURI());
-				ObservingEndpoint remote = observeManager.findObservingEndpoint(source);
-				QoSObserveRelation relation = new QoSObserveRelation(remote, resource, exchange);
-				remote.addObserveRelation(relation);
-				exchange.setRelation(relation);
-				// all that's left is to add the relation to the resource which
-				// the resource must do itself if the response is successful
+				//Parse CoRE
+				int pmin = -1;
+				int pmax = -1;
+				for(String composedquery : queries){
+					//handle queries values
+					String[] tmp = composedquery.split("=");
+					if(tmp.length != 2) // not valid Pmin or Pmax
+						return;
+					String query = tmp[0];
+					String value = tmp[1];
+					if(query.equals(CoAP.MINIMUM_PERIOD)){
+						int seconds = -1;
+						try{
+							seconds = Integer.parseInt(value); 
+							if(seconds <= 0) throw new NumberFormatException();
+						} catch(NumberFormatException e){
+							return;
+						}
+						pmin = seconds * 1000; //convert to milliseconds 
+					} else if(query.equals(CoAP.MAXIMUM_PERIOD)){
+						int seconds = -1;
+						try{
+							seconds = Integer.parseInt(value); 
+							if(seconds <= 0) throw new NumberFormatException();
+						} catch(NumberFormatException e){
+							return;
+						}
+						pmax = seconds * 1000; //convert to milliseconds 
+					}
+				}
+				if(pmin > pmax)
+					return;
+				// Minimum and Maximum period has been set
+				if(pmin != -1 && pmax != -1){
+					LOGGER.finer("Initiate an observe relation between " + request.getSource() + ":" + request.getSourcePort() + " and resource " + resource.getURI());
+					ObservingEndpoint remote = observeManager.findObservingEndpoint(source);
+					QoSObserveRelation relation = new QoSObserveRelation(remote, resource, exchange);
+					relation.setPmax(pmax);
+					relation.setPmin(pmin);
+					remote.addObserveRelation(relation);
+					exchange.setRelation(relation);
+					// all that's left is to add the relation to the resource which
+					// the resource must do itself if the response is successful
+				}
 				
 			} else if (request.getOptions().getObserve() == 1) {
 				// Observe defines 1 for canceling
