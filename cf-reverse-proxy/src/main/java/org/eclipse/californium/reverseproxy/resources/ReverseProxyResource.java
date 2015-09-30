@@ -621,8 +621,14 @@ public class ReverseProxyResource extends CoapResource {
 	private ClientEndpoint minPmaxClient() {
 		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
-		InetSocketAddress ret = null;
-		for(ObserveRelation obs : this.getObserveRelations()){
+		ClientEndpoint ret = null;
+		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
+			if(entry.getValue().getPmax() < minPmax){
+				minPmax = entry.getValue().getPmax();
+				ret = entry.getKey();
+			}
+		}
+		/*for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			if(qosEndpoint.getPmax() < minPmax){
@@ -630,7 +636,8 @@ public class ReverseProxyResource extends CoapResource {
 				ret = qosEndpoint.getAddress();
 			}
 		}
-		return new ClientEndpoint(ret);
+		return new ClientEndpoint(ret);*/
+		return ret;
 	}
 
 	/**
@@ -670,7 +677,7 @@ public class ReverseProxyResource extends CoapResource {
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		for(ObserveRelation obs : this.getObserveRelations()){
+		/*for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
@@ -678,19 +685,13 @@ public class ReverseProxyResource extends CoapResource {
 			tasks.add(t);
 			LOGGER.info(t.toString());
 			
-		}
-		
-		/*for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			for(ObserveRelation obs : this.getObserveRelations()){
-				QoSObserveRelation qosObs = (QoSObserveRelation) obs;
-				QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
-				if((new ClientEndpoint(qosEndpoint.getAddress())).equals(entry.getKey())){
-					Task t = new Task(entry.getKey(), entry.getValue());
-					tasks.add(t);
-					LOGGER.info(t.toString());
-				}
-			}
 		}*/
+		
+		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
+			Task t = new Task(entry.getKey(), entry.getValue());
+			tasks.add(t);
+			LOGGER.info(t.toString());
+		}
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
 		
