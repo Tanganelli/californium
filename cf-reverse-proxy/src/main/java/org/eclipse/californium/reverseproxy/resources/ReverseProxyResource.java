@@ -670,17 +670,27 @@ public class ReverseProxyResource extends CoapResource {
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
+		for(ObserveRelation obs : this.getObserveRelations()){
+			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
+			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
+			Task t = new Task(tmp, this.pending.get(tmp));
+			tasks.add(t);
+			LOGGER.info(t.toString());
+			
+		}
+		
+		/*for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
 			for(ObserveRelation obs : this.getObserveRelations()){
 				QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 				QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
-				if(new ClientEndpoint(qosEndpoint.getAddress()).equals(entry.getKey())){
+				if((new ClientEndpoint(qosEndpoint.getAddress())).equals(entry.getKey())){
 					Task t = new Task(entry.getKey(), entry.getValue());
 					tasks.add(t);
 					LOGGER.info(t.toString());
 				}
 			}
-		}
+		}*/
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
 		
