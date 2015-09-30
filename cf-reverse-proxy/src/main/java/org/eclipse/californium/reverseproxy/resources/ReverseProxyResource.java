@@ -581,7 +581,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private ScheduleResults schedule(){
+	private synchronized ScheduleResults schedule(){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
