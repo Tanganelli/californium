@@ -1,5 +1,6 @@
 package org.eclipse.californium.reverseproxy.resources;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -620,16 +621,16 @@ public class ReverseProxyResource extends CoapResource {
 	private ClientEndpoint minPmaxClient() {
 		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
-		ClientEndpoint ret = null;
+		InetSocketAddress ret = null;
 		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			if(qosEndpoint.getPmax() < minPmax){
 				minPmax = qosEndpoint.getPmax();
-				ret = new ClientEndpoint(qosEndpoint.getAddress());
+				ret = qosEndpoint.getAddress();
 			}
 		}
-		return ret;
+		return new ClientEndpoint(ret);
 	}
 
 	/**
@@ -670,9 +671,15 @@ public class ReverseProxyResource extends CoapResource {
 		}
 		List<Task> tasks = new ArrayList<Task>();
 		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			Task t = new Task(entry.getKey(), entry.getValue());
-			tasks.add(t);
-			LOGGER.info(t.toString());
+			for(ObserveRelation obs : this.getObserveRelations()){
+				QoSObserveRelation qosObs = (QoSObserveRelation) obs;
+				QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+				if(new ClientEndpoint(qosEndpoint.getAddress()).equals(entry.getKey())){
+					Task t = new Task(entry.getKey(), entry.getValue());
+					tasks.add(t);
+					LOGGER.info(t.toString());
+				}
+			}
 		}
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
