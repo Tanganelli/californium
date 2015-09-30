@@ -192,6 +192,7 @@ public class ReverseProxyResource extends CoapResource {
 			//Observe Request
 			ResponseCode res = null;
 			if(!clientrelation.isEstablished()){
+				exchange.advanced().sendAccept();
 				res = handleGETCoRE(exchange);
 				QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
 				ClientEndpoint cEp = new ClientEndpoint(ep.getAddress());
