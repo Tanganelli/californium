@@ -427,7 +427,7 @@ public class ReverseProxyResource extends CoapResource {
 		pr.setAllowed(clientrelation.isEstablished());
 		
 		// Both parameters have been set
-		if(pr.isAllowed() || scheduleNewRequest(pr)){
+		if(pr.isAllowed() || scheduleNewRequest(clientrelation)){
 				return ResponseCode.CONTENT;				
 		} else{
 			// Scheduling is not feasible
@@ -486,7 +486,7 @@ public class ReverseProxyResource extends CoapResource {
 		boolean end = false;
 		while(!end) // delete the most demanding client
 		{
-			ScheduleResults ret = schedule();
+			ScheduleResults ret = schedule(null);
 			end = ret.isValid();
 			if(!end){
 				QoSObserveRelation client = minPmaxClient();
@@ -559,12 +559,12 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param remoteEndpoint 
 	 * @param reverseProxyResource 
 	 */
-	private boolean scheduleNewRequest(QoSParameters params) {
-		LOGGER.log(Level.INFO, "scheduleNewRequest(" + params + ")");
+	private boolean scheduleNewRequest(QoSObserveRelation clientrelation) {
+		LOGGER.log(Level.INFO, "scheduleNewRequest(" + clientrelation + ")");
 		if(this.rtt == -1) evaluateRtt();
-		if(params.getPmin() < this.rtt) return false;
-		ScheduleResults ret = schedule();
-		LOGGER.log(Level.INFO, " End scheduleNewRequest(" + params + ")");
+		if(clientrelation.getPmin() < this.rtt) return false;
+		ScheduleResults ret = schedule(clientrelation);
+		LOGGER.log(Level.INFO, " End scheduleNewRequest(" + clientrelation + ")");
 		if(ret.isValid()){
 			boolean periodChanged = updatePeriods(ret);
 			if(periodChanged){
@@ -578,26 +578,39 @@ public class ReverseProxyResource extends CoapResource {
 	/**
 	 * Invokes the scheduler on the set of pending requests.
 	 * Produces a new scheduler schema.
+	 * @param clientrelation 
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private synchronized ScheduleResults schedule(){
+	private synchronized ScheduleResults schedule(QoSObserveRelation clientrelation){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
 		
-		if(this.getObserverCount() == 0){
+		if(this.getObserverCount() == 0 && clientrelation == null){
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
+		boolean check = false;
 		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+			if(qosObs.equals(clientrelation))
+				check = true;
 			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
 			Task t = new Task(tmp, new QoSParameters(qosObs.getPmin(), qosObs.getPmax(), false));
 			tasks.add(t);
 			LOGGER.info(t.toString());
 			
+		}
+		if(!check && clientrelation != null)
+		{
+			QoSObserveRelation qosObs = clientrelation;
+			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
+			Task t = new Task(tmp, new QoSParameters(qosObs.getPmin(), qosObs.getPmax(), false));
+			tasks.add(t);
+			LOGGER.info(t.toString());
 		}
 
 		Periods periods = scheduler.schedule(tasks, rtt);
