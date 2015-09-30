@@ -334,7 +334,7 @@ public class ReverseProxyResource extends CoapResource {
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
 		if(clientEndpoint != null){
-			pending.remove(clientEndpoint);
+			
 			if(this.getObserveRelations().getSize() == 0){
 				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
@@ -583,11 +583,13 @@ public class ReverseProxyResource extends CoapResource {
 
 	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
+		
 		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			ClientEndpoint tmp = new ClientEndpoint(qosObs.getEndpoint().getAddress());
 			if(tmp.equals(client)){
 				obs.cancel();
+				pending.remove(client);
 				obs.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
 			}
 		}
