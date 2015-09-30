@@ -114,7 +114,7 @@ public class ReverseProxyResource extends CoapResource {
 	@Override
 	public void handleRequest(final Exchange exchange) {
 		LOGGER.log(Level.FINER, "handleRequest(" + exchange + ")");
-		exchange.sendAccept();
+		
 		Code code = exchange.getRequest().getCode();
 		switch (code) {
 			case GET:	handleGET(new CoapExchange(exchange, this)); break;
@@ -154,6 +154,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param exchange the CoapExchange for the simple API
 	 */
 	public void handlePUT(CoapExchange exchange) {
+		exchange.advanced().sendAccept();
 		LOGGER.log(Level.FINER, "handlePUT(" + exchange + ")");
 		Request request = exchange.advanced().getRequest();
 		List<String> queries = request.getOptions().getUriQuery();
