@@ -117,7 +117,7 @@ public class ReverseProxyResource extends CoapResource {
 		
 		Code code = exchange.getRequest().getCode();
 		switch (code) {
-			case GET:	handleGET(new CoapExchange(exchange, this)); break;
+			case GET:	exchange.sendAccept(); handleGET(new CoapExchange(exchange, this)); break;
 			case POST:	handlePOST(new CoapExchange(exchange, this)); break;
 			case PUT:	handlePUT(new CoapExchange(exchange, this)); break;
 			case DELETE: handleDELETE(new CoapExchange(exchange, this)); break;
@@ -184,7 +184,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param exchange the CoapExchange for the simple API
 	 */
-	public void handleGET(CoapExchange exchange) {
+	public synchronized void handleGET(CoapExchange exchange) {
 		LOGGER.log(Level.FINER, "handleGET(" + exchange + ")");
 		QoSObserveRelation clientrelation = (QoSObserveRelation) exchange.advanced().getRelation();
 		if(clientrelation != null)
@@ -192,7 +192,6 @@ public class ReverseProxyResource extends CoapResource {
 			//Observe Request
 			ResponseCode res = null;
 			if(!clientrelation.isEstablished()){
-				exchange.advanced().sendAccept();
 				res = handleGETCoRE(clientrelation);
 			}
 			else
@@ -582,7 +581,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private synchronized ScheduleResults schedule(QoSObserveRelation clientrelation){
+	private ScheduleResults schedule(QoSObserveRelation clientrelation){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
