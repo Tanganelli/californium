@@ -334,8 +334,8 @@ public class ReverseProxyResource extends CoapResource {
 	public void deleteSubscriptionsFromClients(ClientEndpoint clientEndpoint) {
 		LOGGER.log(Level.INFO, "deleteSubscriptionsFromClients(" + clientEndpoint + ")");
 		if(clientEndpoint != null){
-			
-			if(this.getObserveRelations().getSize() == 0){
+			scheduleFeasibles();
+			/*if(this.getObserveRelations().getSize() == 0){
 				LOGGER.log(Level.INFO, "SubscriberList Empty");
 				observeEnabled.set(false);
 				lock.lock();
@@ -344,7 +344,7 @@ public class ReverseProxyResource extends CoapResource {
 				relation.proactiveCancel();
 			} else{
 				scheduleFeasibles();
-			}
+			}*/
 		}
 	}
 
@@ -565,7 +565,6 @@ public class ReverseProxyResource extends CoapResource {
 			if(!end){
 				ClientEndpoint client = minPmaxClient();
 				if(client != null){
-					LOGGER.info("Remove client:" + client.toString());
 					deleteSubscriptionFromProxy(client);
 				}
 				else
@@ -577,12 +576,11 @@ public class ReverseProxyResource extends CoapResource {
 					setObservingQoS();
 				}
 			}
-			
 		}
 	}
 
 	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
-		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + ")");
+		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + " (" + pending.get(client) + ") )");
 		
 		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
