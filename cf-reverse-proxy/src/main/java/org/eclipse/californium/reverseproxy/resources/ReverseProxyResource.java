@@ -216,8 +216,7 @@ public class ReverseProxyResource extends CoapResource {
 					Date now = new Date();
 					long timestamp = now.getTime();
 					long elapsed = timestamp - clientrelation.getLastTimespamp();
-					QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
-					if(ep.getPmin() <= elapsed || clientrelation.getLastTimespamp() == -1)
+					if(clientrelation.getPmin() <= elapsed || clientrelation.getLastTimespamp() == -1)
 					{
 						
 						Response responseForClients = getLast(exchange);
