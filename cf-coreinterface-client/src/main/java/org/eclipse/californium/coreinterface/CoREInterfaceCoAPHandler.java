@@ -45,7 +45,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		this.stopCount = stopCount;
 		this.notEnd = notEnd;
 		this.lock = lock;
-		try {
+		/*try {
 			handler = new FileHandler(loggingfile);
 			LOGGER.addHandler(handler);
 		} catch (SecurityException e) {
@@ -54,7 +54,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 	}
 	@Override
 	public void onLoad(CoapResponse response) {

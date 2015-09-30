@@ -93,7 +93,7 @@ public class CoREInterfcaceClient {
 				} finally {
 					lock.unlock();
 				}
-				relation.proactiveCancel();
+				//relation.proactiveCancel();
 				LOGGER.info("Missed Deadlines: "+ handler.getMissDeadlines() + ", Missed Gaps: "+ handler.getMissGaps() +", TotalNotifications: "+ handler.getNotificationsCount());
 				System.out.println(getNow() + "INFO - Missed Deadlines: "+ handler.getMissDeadlines() + ", TotalNotifications: "+ handler.getNotificationsCount());
 			}
