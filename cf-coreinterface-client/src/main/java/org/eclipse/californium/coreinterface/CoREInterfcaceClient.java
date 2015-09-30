@@ -64,7 +64,6 @@ public class CoREInterfcaceClient {
 		
 		CoapClient client = new CoapClient();
 		client.setTimeout(0);
-		//client.setURI(putUri);
 		if(ip != null){
 			try {
 				InetSocketAddress address =  new InetSocketAddress(InetAddress.getByName(ip), 0);
