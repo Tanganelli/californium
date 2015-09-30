@@ -200,10 +200,21 @@ public class ReverseProxyResource extends CoapResource {
 				QoSParameters pr = pending.get(cEp);
 				ep.setPmax(pr.getPmax());
 				ep.setPmin(pr.getPmin());
+				pending.remove(cEp);
 			}
-			else
+			else{
+				QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
+				ClientEndpoint cEp = new ClientEndpoint(ep.getAddress());
+				if(pending.containsKey(cEp))
+				{
+					QoSParameters pr = pending.get(cEp);
+					ep.setPmax(pr.getPmax());
+					ep.setPmin(pr.getPmin());
+					pending.remove(cEp);
+				}
+				
 				res = ResponseCode.CONTENT;
-			
+			}
 			if(res == ResponseCode.CONTENT){
 				// create Observe request for the first client
 				if(observeEnabled.compareAndSet(false, true)){
@@ -436,7 +447,7 @@ public class ReverseProxyResource extends CoapResource {
 		
 		// Both parameters have been set
 		if(pr.getPmin() != -1 && pr.getPmax() != -1){
-			if(pr.isAllowed() || scheduleNewRequest(pr)){
+			if(pr.isAllowed() || scheduleNewRequest(clientEndpoint, pr)){
 				return ResponseCode.CONTENT;				
 			} else{
 				// Scheduling is not feasible
@@ -560,7 +571,7 @@ public class ReverseProxyResource extends CoapResource {
 		boolean end = false;
 		while(!end) // delete the most demanding client
 		{
-			ScheduleResults ret = schedule();
+			ScheduleResults ret = schedule(null);
 			end = ret.isValid();
 			if(!end){
 				ClientEndpoint client = minPmaxClient();
@@ -580,14 +591,14 @@ public class ReverseProxyResource extends CoapResource {
 	}
 
 	private void deleteSubscriptionFromProxy(ClientEndpoint client) {
-		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client + " (" + pending.get(client) + ") )");
+		LOGGER.log(Level.INFO, "deleteSubscriptionFromProxy(" + client +" )");
 		
 		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			ClientEndpoint tmp = new ClientEndpoint(qosObs.getEndpoint().getAddress());
 			if(tmp.equals(client)){
 				obs.cancel();
-				pending.remove(client);
+				//pending.remove(client);
 				obs.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
 			}
 		}
@@ -621,14 +632,14 @@ public class ReverseProxyResource extends CoapResource {
 	private ClientEndpoint minPmaxClient() {
 		LOGGER.log(Level.FINER, "minPmaxClient()");
 		long minPmax = Integer.MAX_VALUE;
-		ClientEndpoint ret = null;
-		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
+		InetSocketAddress ret = null;
+		/*for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
 			if(entry.getValue().getPmax() < minPmax){
 				minPmax = entry.getValue().getPmax();
 				ret = entry.getKey();
 			}
-		}
-		/*for(ObserveRelation obs : this.getObserveRelations()){
+		}*/
+		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			if(qosEndpoint.getPmax() < minPmax){
@@ -636,21 +647,22 @@ public class ReverseProxyResource extends CoapResource {
 				ret = qosEndpoint.getAddress();
 			}
 		}
-		return new ClientEndpoint(ret);*/
-		return ret;
+		return new ClientEndpoint(ret);
+		//return ret;
 	}
 
 	/**
 	 * Verify if the new request can be accepted.
+	 * @param clientEndpoint 
 	 * 
 	 * @param remoteEndpoint 
 	 * @param reverseProxyResource 
 	 */
-	private boolean scheduleNewRequest(QoSParameters params) {
+	private boolean scheduleNewRequest(ClientEndpoint clientEndpoint, QoSParameters params) {
 		LOGGER.log(Level.INFO, "scheduleNewRequest(" + params + ")");
 		if(this.rtt == -1) evaluateRtt();
 		if(params.getPmin() < this.rtt) return false;
-		ScheduleResults ret = schedule();
+		ScheduleResults ret = schedule(clientEndpoint);
 		LOGGER.log(Level.INFO, " End scheduleNewRequest(" + params + ")");
 		if(ret.isValid()){
 			boolean periodChanged = updatePeriods(ret);
@@ -665,33 +677,42 @@ public class ReverseProxyResource extends CoapResource {
 	/**
 	 * Invokes the scheduler on the set of pending requests.
 	 * Produces a new scheduler schema.
+	 * @param clientEndpoint 
 	 * 
 	 * @return true if success, false otherwise.
 	 */
-	private ScheduleResults schedule(){
+	private ScheduleResults schedule(ClientEndpoint clientEndpoint){
 		LOGGER.log(Level.FINER, "schedule()");
 		long rtt = this.rtt;
 		LOGGER.info("schedule() - Rtt: " + this.rtt);
 		
-		if(this.pending.size() == 0){
+		if(this.getObserverCount() == 0 && clientEndpoint == null){
 			return new ScheduleResults(0, Integer.MAX_VALUE, rtt, false);
 		}
 		List<Task> tasks = new ArrayList<Task>();
-		/*for(ObserveRelation obs : this.getObserveRelations()){
+		boolean check = false;
+		for(ObserveRelation obs : this.getObserveRelations()){
 			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
 			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
 			ClientEndpoint tmp = new ClientEndpoint(qosEndpoint.getAddress());
-			Task t = new Task(tmp, this.pending.get(tmp));
+			if(clientEndpoint != null && clientEndpoint.equals(tmp))
+				check = true;
+			Task t = new Task(tmp, new QoSParameters(qosEndpoint.getPmin(),qosEndpoint.getPmax(), false));
 			tasks.add(t);
 			LOGGER.info(t.toString());
 			
-		}*/
-		
-		for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
-			Task t = new Task(entry.getKey(), entry.getValue());
+		}
+		if(!check && clientEndpoint != null)
+		{
+			Task t = new Task(clientEndpoint, this.pending.get(clientEndpoint));
 			tasks.add(t);
 			LOGGER.info(t.toString());
 		}
+		/*for(Entry<ClientEndpoint, QoSParameters> entry : this.pending.entrySet()){
+			Task t = new Task(entry.getKey(), entry.getValue());
+			tasks.add(t);
+			LOGGER.info(t.toString());
+		}*/
 		
 		Periods periods = scheduler.schedule(tasks, rtt);
 		
@@ -699,8 +720,8 @@ public class ReverseProxyResource extends CoapResource {
 		int periodMin = periods.getPmin();
 
 		if(periodMax > rtt){
-			for(Task t : tasks){
-				this.pending.get(t.getClient()).setAllowed(true);
+			if(clientEndpoint != null){
+				this.pending.get(clientEndpoint).setAllowed(true);
 			}
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
