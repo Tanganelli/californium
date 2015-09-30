@@ -83,7 +83,7 @@ public class ReverseProxyResource extends CoapResource {
 	public ReverseProxyResource(String name, URI uri, ResourceAttributes resourceAttributes, NetworkConfig networkConfig, ReverseProxy reverseProxy) {
 		super(name);
 		this.uri = uri;
-		this.rtt = -1;
+		this.rtt = 1000;
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
