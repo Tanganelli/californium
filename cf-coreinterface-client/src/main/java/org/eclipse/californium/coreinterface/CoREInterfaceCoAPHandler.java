@@ -77,7 +77,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
-			System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
+			System.out.println(getNow() + " " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
 		}
 		
