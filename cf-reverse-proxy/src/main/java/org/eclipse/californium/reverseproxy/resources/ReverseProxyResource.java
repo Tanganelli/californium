@@ -299,8 +299,7 @@ public class ReverseProxyResource extends CoapResource {
 		if(exchange == null){
 			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 		}
-		return getLast(exchange.advanced());
-		/*lock.lock();
+		lock.lock();
 		try {
 			while(relation == null || relation.getCurrent() == null)
 					newNotification.await();
@@ -322,36 +321,6 @@ public class ReverseProxyResource extends CoapResource {
 		responseForClients.setDestination(exchange.getSourceAddress());
 		responseForClients.setDestinationPort(exchange.getSourcePort());
 		responseForClients.setToken(exchange.advanced().getCurrentRequest().getToken());
-		return responseForClients;*/
-	}
-	
-	private Response getLast(Exchange exchange) {
-		LOGGER.log(Level.INFO, "getLast(" + exchange + ")");
-		if(exchange == null){
-			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
-		}
-		lock.lock();
-		try {
-			while(relation == null || relation.getCurrent() == null)
-					newNotification.await();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} finally{
-			lock.unlock();
-		}
-		Response notification = relation.getCurrent().advanced();
-		
-		// accept without create a new observing relationship
-		Response responseForClients = new Response(notification.getCode());
-		// copy payload
-		byte[] payload = notification.getPayload();
-		responseForClients.setPayload(payload);
-
-		// copy every option
-		responseForClients.setOptions(new OptionSet(notification.getOptions()));
-		responseForClients.setDestination(exchange.getRequest().getSource());
-		responseForClients.setDestinationPort(exchange.getRequest().getSourcePort());
-		responseForClients.setToken(exchange.getRequest().getToken());
 		return responseForClients;
 	}
 	
@@ -931,25 +900,9 @@ public class ReverseProxyResource extends CoapResource {
 										delay = (deadline - timestamp);									
 								} else{
 									System.out.println("New notification");
-									
-									long elapsed = timestamp - qosObs.getLastTimespamp();
-									
-									if(qosEndpoint.getPmin() <= elapsed || qosObs.getLastTimespamp() == -1)
-									{
-										
-										Response responseForClients = getLast(qosObs.getExchange());
-										//save lastNotification for the client
-										checkObserveRelation(qosObs.getExchange(), responseForClients);
-										
-										qosObs.getExchange().sendResponse(responseForClients);
-	
-										qosObs.setLastTimespamp(timestamp);
-										qosObs.setLastNotificationBeforeTranslation(relation.getCurrent().advanced());
-									}
-									
-									/*if(to_change)
+									if(to_change)
 										sendValidated(timestamp, notification);
-									to_change = false;*/
+									to_change = false;
 									
 								}
 							} else { // too early
