@@ -185,7 +185,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param exchange the CoapExchange for the simple API
 	 */
-	public synchronized void handleGET(CoapExchange exchange) {
+	public void handleGET(CoapExchange exchange) {
 		LOGGER.log(Level.FINER, "handleGET(" + exchange + ")");
 		QoSObserveRelation clientrelation = (QoSObserveRelation) exchange.advanced().getRelation();
 		if(clientrelation != null)
@@ -193,14 +193,16 @@ public class ReverseProxyResource extends CoapResource {
 			//Observe Request
 			ResponseCode res = null;
 			if(!clientrelation.isEstablished()){
-				exchange.advanced().sendAccept();
-				res = handleGETCoRE(exchange);
-				QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
-				ClientEndpoint cEp = new ClientEndpoint(ep.getAddress());
-				QoSParameters pr = pending.get(cEp);
-				ep.setPmax(pr.getPmax());
-				ep.setPmin(pr.getPmin());
-				pending.remove(cEp);
+				synchronized(this){
+					exchange.advanced().sendAccept();
+					res = handleGETCoRE(exchange);
+					QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
+					ClientEndpoint cEp = new ClientEndpoint(ep.getAddress());
+					QoSParameters pr = pending.get(cEp);
+					ep.setPmax(pr.getPmax());
+					ep.setPmin(pr.getPmin());
+					pending.remove(cEp);
+				}
 			}
 			else{
 				QoSObservingEndpoint ep = (QoSObservingEndpoint) clientrelation.getEndpoint();
