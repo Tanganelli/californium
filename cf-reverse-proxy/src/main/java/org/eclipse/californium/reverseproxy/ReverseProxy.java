@@ -122,7 +122,7 @@ public class ReverseProxy extends CoapServer {
 			this.discoverThreadIPv4 = new Discover("UDP-Discover-"+getUnicastEndpoint().getAddress().getHostName(), this.getUnicastEndpoint(), this, this.handlerIPv4, config);
 			mapping = new HashMap<InetSocketAddress, Set<WebLink>>();
 			clientRTT = new HashMap<InetSocketAddress, Long>();
-			executor = Executors.newScheduledThreadPool(10);
+			executor = Executors.newScheduledThreadPool(100);
 			setExecutor(executor);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
