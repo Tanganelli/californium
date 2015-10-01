@@ -57,7 +57,7 @@ public class CoREInterfcaceClient {
 		}*/
 		
 		String putUri = uri + "?pmin=" + String.valueOf(pmin) + "&pmax=" + String.valueOf(pmax);
-		
+		System.out.println("("+pmin +", " + pmax +")" );
 		// re-usable response object
 		CoapResponse response;
 		CoREInterfaceCoAPHandler handler = new CoREInterfaceCoAPHandler(pmin, pmax, stop, logFile, notEnd, lock);

@@ -64,7 +64,7 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		notificationsCount++;
 		if(timestampLast != -1 && timestamp < timestampLast + pmin){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
-			System.out.println(getNow() + "ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
+			//System.out.println(getNow() + "ERROR - Too early, advance= " + ((timestampLast + pmin) - timestamp) + " ms");
 			missDeadlines++;
 		}
 		if(timestampLast == -1){
@@ -77,13 +77,13 @@ public class CoREInterfaceCoAPHandler implements CoapHandler{
 		
 		if(timestamp > timestampLast + pmax){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
-			System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
+			//System.out.println(getNow() + "ERROR - Missed Deadline, delay= " + (timestamp - (timestampLast + pmax)) + " ms");
 			missDeadlines++;
 		}
 		
 		if(timestamp > timestampLast + (maxAgeLast * 1000)){
 			LOGGER.severe("Client (" + pmin + "-" + pmax + ") GAP discovered, delay= " + (timestamp - (timestampLast + (maxAgeLast * 1000))) + " ms");
-			System.out.println(getNow() + "ERROR - GAP discovered, delay= " + (timestamp - (timestampLast +  (maxAgeLast * 1000))) + " ms");
+			//System.out.println(getNow() + "ERROR - GAP discovered, delay= " + (timestamp - (timestampLast +  (maxAgeLast * 1000))) + " ms");
 			setMissGaps(getMissGaps() + 1);
 		}
 		
