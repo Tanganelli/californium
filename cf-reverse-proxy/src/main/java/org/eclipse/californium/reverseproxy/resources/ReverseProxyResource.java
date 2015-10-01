@@ -185,7 +185,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * 
 	 * @param exchange the CoapExchange for the simple API
 	 */
-	public void handleGET(CoapExchange exchange) {
+	public synchronized void handleGET(CoapExchange exchange) {
 		LOGGER.log(Level.FINER, "handleGET(" + exchange + ")");
 		QoSObserveRelation clientrelation = (QoSObserveRelation) exchange.advanced().getRelation();
 		if(clientrelation != null)
