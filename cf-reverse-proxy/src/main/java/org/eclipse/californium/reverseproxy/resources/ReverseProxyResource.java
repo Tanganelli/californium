@@ -601,6 +601,8 @@ public class ReverseProxyResource extends CoapResource {
 			if(tmp.equals(client)){
 				obs.cancel();
 				//pending.remove(client);
+				QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+				LOGGER.log(Level.INFO, "Remove client(" + qosEndpoint.getPmin() +", " + qosEndpoint.getPmax()  +")");
 				obs.getExchange().sendResponse(new Response(ResponseCode.NOT_ACCEPTABLE));
 			}
 		}
