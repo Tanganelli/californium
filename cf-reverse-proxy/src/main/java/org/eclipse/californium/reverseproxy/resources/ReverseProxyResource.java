@@ -289,7 +289,9 @@ public class ReverseProxyResource extends CoapResource {
 		if(exchange == null){
 			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 		}
-		
+		while(getRelation() == null || getRelation().getCurrent() == null){}
+			
+
 		Response notification = getRelation().getCurrent().advanced();
 		
 		// accept without create a new observing relationship
