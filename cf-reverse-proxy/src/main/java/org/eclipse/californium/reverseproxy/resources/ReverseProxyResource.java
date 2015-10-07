@@ -711,6 +711,7 @@ public class ReverseProxyResource extends CoapResource {
 			if(clientEndpoint != null){
 				this.pending.get(clientEndpoint).setAllowed(true);
 			}
+			this.lastValidRtt = rtt;
 			return new ScheduleResults(periodMin, periodMax, rtt, true);
 		}
 		return new ScheduleResults(periodMin, periodMax, rtt, false);
