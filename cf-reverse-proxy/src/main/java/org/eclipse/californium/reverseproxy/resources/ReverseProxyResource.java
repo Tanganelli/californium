@@ -101,6 +101,7 @@ public class ReverseProxyResource extends CoapResource {
 		rttTask = new RttTask();
 		observeEnabled = new AtomicBoolean(false);
 		sendEvaluateRtt = new AtomicBoolean(true);
+		rttExecutor.submit(rttTask);
 	}
 	
 	@Override
@@ -218,8 +219,6 @@ public class ReverseProxyResource extends CoapResource {
 					long timestamp = now.getTime();
 					clientrelation.setLastTimespamp(timestamp);
 					clientrelation.setLastNotificationBeforeTranslation(getRelation().getCurrent().advanced());
-					
-					rttExecutor.submit(rttTask);
 				}else{
 					//reply to client
 					Date now = new Date();
