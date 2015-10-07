@@ -49,7 +49,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * is used as the timeout for waiting replies from the end device.*/
 	private static long WAIT_FACTOR = 10;
 
-	private static final long PERIOD_RTT = 10000; // 10 sec
+	private static final long PERIOD_RTT = 5000; // 10 sec
 
 	private static final long THRESHOLD = 500; // 500 ms as threshold
 	
@@ -852,7 +852,7 @@ public class ReverseProxyResource extends CoapResource {
 		private int count = 0;
 	    @Override
 	    public void run() {
-	    	while(observeEnabled.get()){
+	    	while(true){
 	    		LOGGER.fine("RttTask");
 	    		/*if(count < RENEW_COUNTER){
 	    			count++;
