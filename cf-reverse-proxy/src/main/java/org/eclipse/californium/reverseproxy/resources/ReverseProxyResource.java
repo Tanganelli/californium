@@ -285,7 +285,7 @@ public class ReverseProxyResource extends CoapResource {
 	}
 	
 	private Response getLast(CoapExchange exchange) {
-		LOGGER.log(Level.INFO, "getLast(" + exchange + ")");
+		
 		if(exchange == null){
 			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 		}
