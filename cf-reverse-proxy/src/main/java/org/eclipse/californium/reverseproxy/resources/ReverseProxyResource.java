@@ -79,7 +79,11 @@ public class ReverseProxyResource extends CoapResource {
 		super(name);
 		this.uri = uri;
 		this.rtt = -1;
+		this.reverseProxy = reverseProxy;
 		pending = new ConcurrentHashMap<ClientEndpoint, QoSParameters>();
+		observeEnabled = new AtomicBoolean(false);
+		sendEvaluateRtt = new AtomicBoolean(true);
+		
 		for(String key : resourceAttributes.getAttributeKeySet()){
 			for(String value : resourceAttributes.getAttributeValues(key))
 				this.getAttributes().addAttribute(key, value);
@@ -97,10 +101,7 @@ public class ReverseProxyResource extends CoapResource {
 		setRelation(null);
 		scheduler = new Scheduler();
 		rttExecutor = Executors.newScheduledThreadPool(1);
-		this.reverseProxy = reverseProxy;
 		rttTask = new RttTask();
-		observeEnabled = new AtomicBoolean(false);
-		sendEvaluateRtt = new AtomicBoolean(true);
 		rttExecutor.submit(rttTask);
 	}
 	
