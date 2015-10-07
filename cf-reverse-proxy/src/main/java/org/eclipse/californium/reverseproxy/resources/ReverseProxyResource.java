@@ -409,7 +409,7 @@ public class ReverseProxyResource extends CoapResource {
 	 * @param currentRTO the new RTT
 	 */
 	public void updateRTT() {
-		evaluateRtt();
+		rtt = evaluateRtt();
 		LOGGER.log(Level.FINER, "updateRTO()");
 		LOGGER.info("Last Valid RTT= " + String.valueOf(lastValidRtt) + " - currentRTO= " + String.valueOf(rtt));
 		if((rtt - THRESHOLD) > lastValidRtt){ //worse RTT
