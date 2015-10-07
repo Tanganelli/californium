@@ -56,8 +56,6 @@ public class ReverseProxyResource extends CoapResource {
 	private final URI uri;
 
 	private final Scheduler scheduler;
-	private final NotificationTask notificationTask;
-    private final ScheduledExecutorService notificationExecutor;
     private final ScheduledExecutorService rttExecutor;
     
 	private long notificationPeriodMin;
@@ -67,9 +65,6 @@ public class ReverseProxyResource extends CoapResource {
 	private CoapClient client;
 	private CoapObserveRelation relation;
 	private ReverseProxy reverseProxy;
-	
-	Lock lock;
-	Condition newNotification;
 
 	private RttTask rttTask;
 
@@ -99,14 +94,10 @@ public class ReverseProxyResource extends CoapResource {
 		
 		client = new CoapClient(this.uri);
 		client.setEndpoint(reverseProxy.getUnicastEndpoint());
-		relation = null;
+		setRelation(null);
 		scheduler = new Scheduler();
-		notificationTask = new NotificationTask();
-		notificationExecutor = Executors.newScheduledThreadPool(1);
 		rttExecutor = Executors.newScheduledThreadPool(1);
 		this.reverseProxy = reverseProxy;
-		lock = new ReentrantLock();
-		newNotification = lock.newCondition();
 		rttTask = new RttTask();
 		observeEnabled = new AtomicBoolean(false);
 		sendEvaluateRtt = new AtomicBoolean(true);
@@ -220,15 +211,14 @@ public class ReverseProxyResource extends CoapResource {
 			if(res == ResponseCode.CONTENT){
 				// create Observe request for the first client
 				if(observeEnabled.compareAndSet(false, true)){
-					relation = client.observe(new ReverseProxyCoAPHandler(this));
+					setRelation(client.observe(new ReverseProxyCoAPHandler(this)));
 					Response responseForClients = getLast(exchange);
 					exchange.respond(responseForClients);
 					Date now = new Date();
 					long timestamp = now.getTime();
 					clientrelation.setLastTimespamp(timestamp);
-					clientrelation.setLastNotificationBeforeTranslation(relation.getCurrent().advanced());
-					LOGGER.info("Start Notification Task");
-					notificationExecutor.submit(notificationTask);
+					clientrelation.setLastNotificationBeforeTranslation(getRelation().getCurrent().advanced());
+					
 					rttExecutor.submit(rttTask);
 				}else{
 					//reply to client
@@ -243,7 +233,7 @@ public class ReverseProxyResource extends CoapResource {
 						//save lastNotification for the client
 						exchange.respond(responseForClients);
 						clientrelation.setLastTimespamp(timestamp);
-						clientrelation.setLastNotificationBeforeTranslation(relation.getCurrent().advanced());
+						clientrelation.setLastNotificationBeforeTranslation(getRelation().getCurrent().advanced());
 					}
 					
 				}
@@ -255,7 +245,7 @@ public class ReverseProxyResource extends CoapResource {
 			
 			//Cancel Observe Request
 			Response responseForClients;			
-			if(relation == null || relation.getCurrent() == null){
+			if(getRelation() == null || getRelation().getCurrent() == null){
 				responseForClients = new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 			} else {
 				responseForClients = getLast(exchange);
@@ -299,16 +289,8 @@ public class ReverseProxyResource extends CoapResource {
 		if(exchange == null){
 			return new Response(ResponseCode.INTERNAL_SERVER_ERROR);
 		}
-		lock.lock();
-		try {
-			while(relation == null || relation.getCurrent() == null)
-					newNotification.await();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} finally{
-			lock.unlock();
-		}
-		Response notification = relation.getCurrent().advanced();
+		
+		Response notification = getRelation().getCurrent().advanced();
 		
 		// accept without create a new observing relationship
 		Response responseForClients = new Response(notification.getCode());
@@ -326,9 +308,9 @@ public class ReverseProxyResource extends CoapResource {
 	
 	public void setTimestamp(long timestamp) {
 		LOGGER.log(Level.FINER, "setTimestamp(" + timestamp + ")");
-		relation.getCurrent().advanced().setTimestamp(timestamp);
+		getRelation().getCurrent().advanced().setTimestamp(timestamp);
 		// Update also Max Age to consider Server RTT
-		relation.getCurrent().advanced().getOptions().setMaxAge(relation.getCurrent().advanced().getOptions().getMaxAge() - (rtt / 1000));
+		getRelation().getCurrent().advanced().getOptions().setMaxAge(getRelation().getCurrent().advanced().getOptions().getMaxAge() - (rtt / 1000));
 	}
 	
 	public long getRtt() {
@@ -855,106 +837,14 @@ public class ReverseProxyResource extends CoapResource {
 		return outgoingRequest;
 	}
 	
-	/**
-	 * Thread class to send periodic notifications to clients.
-	 *
-	 */
-	private class NotificationTask implements Runnable{
-
-		private boolean to_change = true;
-		@Override
-		public void run() {
-			while(observeEnabled.get()){
-				LOGGER.log(Level.FINE, "NotificationTask Run");
-				long delay = notificationPeriodMax;
-				if(relation == null || relation.getCurrent() != null){
-					Response notification = relation.getCurrent().advanced();
-					for(ObserveRelation obs : getObserveRelations()){
-						QoSObserveRelation qosObs = (QoSObserveRelation) obs;
-						QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
-						
-						QoSParameters pr = new QoSParameters();
-						pr.setAllowed(true);
-						pr.setPmax(qosEndpoint.getPmax());
-						pr.setPmin(qosEndpoint.getPmin());
-						
-						LOGGER.fine("Entry - " + pr.toString() + ":" + pr.isAllowed());
-						if(pr.isAllowed()){
-							Date now = new Date();
-							long timestamp = now.getTime();
-							
-							long nextInterval = 0;
-							long deadline = 0;
-							long maxAge = notification.getOptions().getMaxAge() * 1000;
-							if(qosObs.getLastTimespamp() == -1){
-								nextInterval = (timestamp + ((long)pr.getPmin()));
-								deadline = timestamp + Math.min(((long)pr.getPmax()), maxAge);
-							}
-							else{
-								nextInterval = (qosObs.getLastTimespamp() + ((long)pr.getPmin()));
-								deadline = qosObs.getLastTimespamp() + Math.min(((long)pr.getPmax()), maxAge);
-							}
-							if(timestamp >= nextInterval){
-								LOGGER.fine("Time to send");
-								if(qosObs.getLastNotificationBeforeTranslation().equals(notification)){ //old notification
-									LOGGER.info("Old Notification");
-									if(delay > (deadline - timestamp) && (deadline - timestamp) >= 0)
-										delay = (deadline - timestamp);									
-								} else{
-									System.out.println("New notification");
-									if(to_change)
-										sendValidated(timestamp, notification);
-									to_change = false;
-									
-								}
-							} else { // too early
-								LOGGER.fine("Too early");
-								long nextawake = timestamp + delay;
-								if(nextawake >= deadline){ // check if next awake will be to late
-									if(delay > (deadline - timestamp))
-										delay = (deadline - timestamp);
-								}
-							}
-						}
-							
-					}
-				}
-				to_change = true;
-				LOGGER.fine("Delay " + delay);
-				try {
-					lock.lock();
-					newNotification.await(delay, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} finally {
-					lock.unlock();
-				}
-			}
-		}
-
-		/**
-		 * Send if the last notification is still valid
-		 * @param cl 
-		 * 
-		 * @param pr PeriodicRequest  to reply to
-		 * @param timestamp the timestamp
-		 */
-		private void sendValidated(long timestamp, Response response) {
-			LOGGER.log(Level.FINER, "sendValidated");
-			long timestampResponse = response.getTimestamp(); 
-			long maxAge = response.getOptions().getMaxAge();
-			
-			if(timestampResponse + (maxAge * 1000) > timestamp){ //already take into account the rtt experimented by the notification
-				LOGGER.fine("sendValidated to be sent");
-				changed();
-				
-			} else {
-				LOGGER.severe("Response no more valid");
-			}
-			
-		}	
+	public CoapObserveRelation getRelation() {
+		return relation;
 	}
-	
+
+	public void setRelation(CoapObserveRelation relation) {
+		this.relation = relation;
+	}
+
 	public class RttTask implements Runnable {
 		
 		private static final int RENEW_COUNTER = 10;
@@ -983,15 +873,15 @@ public class ReverseProxyResource extends CoapResource {
 
 		private long renewRegistration() {
 			Request refresh = Request.newGet();
-			refresh.setOptions(relation.getRequest().getOptions());
+			refresh.setOptions(getRelation().getRequest().getOptions());
 			// make sure Observe is set and zero
 			refresh.setObserve();
 			// use same Token
-			refresh.setToken(relation.getRequest().getToken());
-			refresh.setDestination(relation.getRequest().getDestination());
-			refresh.setDestinationPort(relation.getRequest().getDestinationPort());
+			refresh.setToken(getRelation().getRequest().getToken());
+			refresh.setDestination(getRelation().getRequest().getDestination());
+			refresh.setDestinationPort(getRelation().getRequest().getDestinationPort());
 			refresh.send(reverseProxy.getUnicastEndpoint());
-			LOGGER.info("Re-registering for " + relation.getRequest());
+			LOGGER.info("Re-registering for " + getRelation().getRequest());
 			Response response;
 			long timeout = WAIT_FACTOR;
 			try {

@@ -4,6 +4,11 @@ import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
+import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.observe.ObserveRelation;
+import org.eclipse.californium.core.qos.QoSObserveRelation;
+import org.eclipse.californium.core.qos.QoSObservingEndpoint;
+import org.eclipse.californium.reverseproxy.QoSParameters;
 
 /**
  * Response Handler for notifications coming from the end device.
@@ -29,9 +34,39 @@ public class ReverseProxyCoAPHandler implements CoapHandler{
 		Date now = new Date();
 		long timestamp = now.getTime();
 		ownerResource.setTimestamp(timestamp);
-		ownerResource.lock.lock();
-		ownerResource.newNotification.signalAll();
-		ownerResource.lock.unlock();
+		Response notification = ownerResource.getRelation().getCurrent().advanced();
+		for(ObserveRelation obs : ownerResource.getObserveRelations()){
+			QoSObserveRelation qosObs = (QoSObserveRelation) obs;
+			QoSObservingEndpoint qosEndpoint = (QoSObservingEndpoint) qosObs.getEndpoint();
+			
+			QoSParameters pr = new QoSParameters();
+			pr.setAllowed(true);
+			pr.setPmax(qosEndpoint.getPmax());
+			pr.setPmin(qosEndpoint.getPmin());
+			
+			LOGGER.fine("Entry - " + pr.toString() + ":" + pr.isAllowed());
+			if(pr.isAllowed()){
+				
+				long nextInterval = 0;
+
+				if(qosObs.getLastTimespamp() == -1){
+					nextInterval = (timestamp + ((long)pr.getPmin()));
+				}
+				else{
+					nextInterval = (qosObs.getLastTimespamp() + ((long)pr.getPmin()));
+				}
+				if(timestamp >= nextInterval){
+					LOGGER.fine("Time to send");
+					if(qosObs.getLastNotificationBeforeTranslation().equals(notification)){ //old notification
+						LOGGER.info("Old Notification");								
+					} else{
+						LOGGER.info("New notification");
+						ownerResource.changed();				
+					}
+				}
+			}
+		}
+		
 	}
 
 	@Override
